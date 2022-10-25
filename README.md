@@ -14,4 +14,4 @@ we can follow pythons (socket)[https://docs.python.org/3/library/socket.html] do
 
 ## Integrate with Discord Bot
 
-It would be cool to as an end goal send commands from discord to control the server
+It would be cool to as an end goal send commands from discord to control the server3
