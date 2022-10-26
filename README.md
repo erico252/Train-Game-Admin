@@ -6,6 +6,10 @@ OpenTTD has access to something they call the admin port. The admin port can be 
 
 To enable the admin port it is important that in ```openttd.cfg``` (normally found in ```C:\Users\Eric\Documents\OpenTTD\openttd.cfg```) under the network category that the follwoingis added ```admin_password = Eric```. You can confirm that the admin port is opend by looking at the server interface and watching for ```dbg: [net] [tcp] listening on IPv4 port 0.0.0.0:3977 (IPv4)```
 
+## AOVE IS FALSE
+
+The admin port now lives in ```C:\Users\Eric\Documents\OpenTTD\secrets.cfg``` as well 
+
 ## TCP And UDP
 
 we will need to understand TCP and UDP packets for this to work, construct them from scratch, send, receive.
