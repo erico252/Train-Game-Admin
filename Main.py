@@ -144,8 +144,7 @@ def Sint64Read(Data):
     tmp = bytearray()
     tmp.extend(Data[0:8])
     check = int.from_bytes(tmp,'little')
-    print(check, 2^63)
-    if check  > (2^63):
+    if check  > (pow(2,63)):
         tmp = TwoComplment(tmp)
         tmp = int.from_bytes(tmp,'little')*-1
     else:
@@ -158,7 +157,7 @@ def DeconstructPacket(Server:ServerInfo):
     Size = Packet[0]+Packet[1] #The first 2 bytes are always the size of the Packet
     Data = Packet[3:] #first 3 pices of information are useless to us
     Type = bytes([Packet[2]]) #The type is always the 3rd byte
-    #We will scan Packet, make new data packet thats smaller for each piece of info we remove
+    #We will scan Packet, make new data packet thats smaller for each piece of info we remove https://docs.openttd.org/source/d0/dec/tcp__admin_8h_source.html
     match Type: # https://docs.openttd.org/source/d0/dec/tcp__admin_8h_source.html #https://github.com/OpenTTD/OpenTTD/blob/master/src/network/core/tcp_admin.h
         case b'\x64': #100
             print("ADMIN_PACKET_SERVER_FULL")
@@ -200,9 +199,11 @@ def DeconstructPacket(Server:ServerInfo):
             CurrentDate,Data = Uint32Read(Data)
             Server.setCurrentDate(CurrentDate)
             Server.DaysPassed()
+            print(Server.Days)
         case b'\x6c': #108
             print("ADMIN_PACKET_SERVER_CLIENT_JOIN")
-            print(Data)
+            ClientID, Data = Uint32Read(Data)
+            Ab = ClientInfo(ClientID)
         case b'\x6d': #109
             print("ADMIN_PACKET_SERVER_CLIENT_INFO")
         case b'\x6e': #110
@@ -212,16 +213,20 @@ def DeconstructPacket(Server:ServerInfo):
         case b'\x70': #112
             print("ADMIN_PACKET_SERVER_CLIENT_ERROR")
         case b'\x71': #113
-            print("ADMIN_PACKET_SERVER_COMPANY_INFO")
+            print("ADMIN_PACKET_SERVER_COMPANY_NEW")
         case b'\x72': #114
             print("ADMIN_PACKET_SERVER_COMPANY_INFO")
         case b'\x73': #115
-            print("ADMIN_PACKET_SERVER_COMPANY_INFO")
+            print("ADMIN_PACKET_SERVER_COMPANY_UPDATE")
         case b'\x74': #116
             print("ADMIN_PACKET_SERVER_COMPANY_REMOVE")
         case b'\x75': #117
             print("ADMIN_PACKET_SERVER_COMPANY_ECONOMY")
-            while len(Data) >0 :
+            
+            print("---------------------------------------")
+            print("---------------------------------------")
+            print(Data)
+            while len(Data) >1 :
                 CompanyID, Data = Uint8Read(Data)
                 Money, Data = Sint64Read(Data)
                 Loan, Data = Uint64Read(Data)
@@ -233,20 +238,24 @@ def DeconstructPacket(Server:ServerInfo):
                 PrevValue, Data = Uint64Read(Data)
                 PrevPerformance, Data = Uint16Read(Data)
                 prevCargo, Data = Uint16Read(Data)
+                Data = Data[3:]
+                
 
-                print(CompanyID)
-                print(Money)
-                print(Loan)
-                print(Income)
-                print(Cargo)
-                print(LastValue)
-                print(LastPerformance)
-                print(LastCargo)
-                print(PrevValue)
-                print(PrevPerformance)
-                print(prevCargo)
+                print("Company ID: ",CompanyID)
+                print("Money: ",Money)
+                print("Loan: ", Loan)
+                print("Income: ",Income)
+                print("Cargo: ",Cargo)
+                print("Last Value: ", LastValue)
+                print("Last Performance: ", LastPerformance)
+                print("Last Cargo: ", LastCargo)
+                print("Prev Value: ", PrevValue)
+                print("Prev Performance: ", PrevPerformance)
+                print("Prev Cargo", prevCargo)
+                print("---------------------------------------")
+                print("---------------------------------------")
                 print(Data)
-            print("Done company Stats")
+            print("Done company Econ")
         case b'\x76': #118
             print("ADMIN_PACKET_SERVER_COMPANY_STATS")
         case b'\x77': #119
