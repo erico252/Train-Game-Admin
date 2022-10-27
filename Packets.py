@@ -31,3 +31,9 @@ class Packet:
     def sendPayload(self):
         socket = self.socket
         socket.send(self.pay)
+
+
+
+
+#we need to understad that we will decode packets based on their type and the data recieved will be interpreted diffrently
+def decode(socketrecived)

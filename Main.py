@@ -1,16 +1,59 @@
-from hashlib import new
-from http import client
+from operator import xor
 import socket
-from tkinter import Pack #Socket is used to create the packets
-import time
-import Packets
-
+from sqlite3 import Date
+import string
+from tabnanny import check
+from wsgiref.simple_server import server_version
+from xmlrpc.client import Server
+ #Socket is used to create the packets
 #From the OpenTTD Docs...
 #Create a TCP connection to the server on port 3977. The application is expected to authenticate within 10 seconds.
 
 #https://docs.python.org/3/library/socket.html
 
 #Create a Socket https://youtu.be/3QiPPX-KeSc?t=2229
+def TwoComplment(byteArray):
+    Inversed = bytearray()
+    for byte in byteArray:
+        Inversed.extend(bytes([xor(byte,255)]))
+    return(Inversed)
+
+class ServerInfo:
+    def __init__(self):
+        print("ServerClass!")
+    def setServerName(self,ServerName):
+        self.ServerName = ServerName
+    def setServerVersion(self,ServerVersion):
+        self.ServerVersion = ServerVersion
+    def setDedicated(self,Dedicated):
+        self.Dedicated = Dedicated
+    def setMapName(self,MapName):
+        self.MapName = MapName
+    def setSeed(self,Seed):
+        self.Seed = Seed
+    def setLandscape(self,Landscape):
+        self.Landscape = Landscape
+    def setStartDate(self,StartDate):
+        self.StartDate = StartDate
+    def setMapWidth(self,MapWidth):
+        self.MapWidth = MapWidth
+    def setMapHeight(self,MapHeight):
+        self.MapHeight = MapHeight
+    def setCurrentDate(self,CurrentDate):
+        self.CurrentDate = CurrentDate
+    def DaysPassed(self):
+        self.Days = self.CurrentDate-self.StartDate
+    
+class CompanyInfo:
+    def __init__(self,CompanyID):
+        self.CompanyID = CompanyID
+        print("CompanyClass!")
+
+class ClientInfo:
+    def __init__(self,ClientID):
+        self.ClientID = ClientID
+        print("ClientClass!")
+    
  
 Sock = socket.socket(
     socket.AF_INET,     #Family = AF_INET (host,port pair)
@@ -23,34 +66,99 @@ AdminPassword = "Eric"
 AdminName = "Erics Bot"
 AdminVersion = "1.0"
 
-def ConstructPacket(rawType, rawData):
+
+def StringWrite(string):
+    tmp = bytearray()
+    tmp.extend(string.encode('utf-8'))
+    tmp.extend(bytes(b'\x00'))
+    return(tmp)
+def BoolWrite(bool):
+    if bool == True: return(b'\x01')
+    else: return(b'\x00')
+def Uint8Write(number):
+    tmp = bytearray()
+    tmp.extend(bytes([number]))
+    return(tmp)
+def Uint16Write(number):
+    if number <= 255:tmp = bytes([number]) + b'\x00'
+    else: tmp = bytes([number])
+    return(tmp)
+def Uint32Write(number):
+    if number <= 255:tmp = bytes([number]) + b'\x00' +b'\x00' +b'\x00'
+    elif number <= 65535: tmp = bytes([number]) + b'\x00' +b'\x00'
+    elif number <= 1677215: tmp = bytes([number]) + b'\x00'
+    else: tmp = bytes([number])
+    return(tmp)
+def ConstructPacket(Type, Data):
     #Packet Format is SIZE TYPE \x00 DATA \x00
-    #-------
-    #lets create the array of data, there may not always be data
-    #Also between each var, we need a \x00 (NULL Char i think)
-    Data = bytearray()
-    if len(rawData) > 0:
-        for var in rawData:
-            if type(var)== int: Data.extend(bytes([var]))
-            else: Data.extend(var.encode('utf-8'))
-            Data.extend(bytes(b'\x00'))
-    else:Data=b'\x00'
-    Type = bytes([rawType])
-    Packet = Type + Data
-    if len(Packet) <=255:Size = bytes([len(Packet)+2]) + b'\x00'
-    else:Size = bytes([len(Packet)])
-    Packet = Size + Packet
+    payload = bytearray()
+    for var in Data:
+        if type(var) == str: payload.extend(StringWrite(var))
+        elif type(var) == int: payload.extend(bytes([var]))
+        elif type(var) == bytes: payload.extend(var)
+        else: pass
+    payload = bytes([Type]) + payload
+    Packet = Uint16Write(len(payload)+2)+payload
     print("The Following Packet was Created...")
     print(Packet)        
     return(Packet)
 
-def DeconstructPacket():
+def StringRead(Data):
+    tmp = bytearray()
+    for val in Data:
+        byte = bytes([val])
+        if byte == b'\x00':break
+        else: tmp.extend(byte)
+    Data = Data[len(tmp)+1:] #+1 to include the EOS
+    tmp = tmp.decode('utf-8')
+    return(tmp,Data)
+def BoolRead(Data):
+    tmp = bytearray()
+    tmp.extend(bytes([Data[0]]))
+    Data = Data[1:]
+    if tmp[0] == 1:tmp = True
+    else:tmp = False
+    return(tmp,Data)
+def Uint8Read(Data):
+    tmp = bytearray()
+    tmp=Data[0]
+    Data = Data[1:]
+    return(tmp,Data)
+def Uint16Read(Data):
+    tmp = bytearray()
+    tmp.extend(Data[0:2])
+    Data = Data[2:]
+    return(int.from_bytes(tmp,'little'),Data)
+def Uint32Read(Data):
+    tmp = bytearray()
+    tmp.extend(Data[0:4])
+    Data = Data[4:]
+    return(int.from_bytes(tmp,'little'),Data)
+def Uint64Read(Data):
+    tmp = bytearray()
+    tmp.extend(Data[0:8])
+    tmp = int.from_bytes(tmp,'little')
+    Data = Data[8:]
+    return(tmp,Data)
+def Sint64Read(Data):
+    tmp = bytearray()
+    tmp.extend(Data[0:8])
+    check = int.from_bytes(tmp,'little')
+    print(check, 2^63)
+    if check  > (2^63):
+        tmp = TwoComplment(tmp)
+        tmp = int.from_bytes(tmp,'little')*-1
+    else:
+        tmp = int.from_bytes(tmp,'little')
+    Data = Data[8:]
+    return(tmp,Data)
+
+def DeconstructPacket(Server:ServerInfo):
     Packet = Sock.recv(1024)
-    print(Packet)
-    print(type(Packet))
     Size = Packet[0]+Packet[1] #The first 2 bytes are always the size of the Packet
-    Type = Packet[2] #The type is always the 3rd byte
-    print(Type)
+    Data = Packet[3:] #first 3 pices of information are useless to us
+    Type = bytes([Packet[2]]) #The type is always the 3rd byte
+    #We will scan Packet, make new data packet thats smaller for each piece of info we remove
     match Type: # https://docs.openttd.org/source/d0/dec/tcp__admin_8h_source.html #https://github.com/OpenTTD/OpenTTD/blob/master/src/network/core/tcp_admin.h
         case b'\x64': #100
             print("ADMIN_PACKET_SERVER_FULL")
@@ -62,14 +170,39 @@ def DeconstructPacket():
             print("ADMIN_PACKET_SERVER_PROTOCOL")
         case b'\x68': #104
             print("ADMIN_PACKET_SERVER_WELCOME")
+            #Unpack Packet
+            ServerName, Data = StringRead(Data)
+            ServerVersion, Data = StringRead(Data)
+            Dedicated, Data = BoolRead(Data)
+            MapName, Data = StringRead(Data)
+            Seed, Data = Uint32Read(Data)
+            Landscape, Data = Uint8Read(Data)
+            StartDate, Data = Uint32Read(Data)
+            MapWidth, Data = Uint16Read(Data)
+            MapHeight, Data = Uint16Read(Data)
+            #Assign to Class
+            Server.setServerName(ServerName)
+            Server.setServerVersion(ServerVersion)
+            Server.setDedicated(Dedicated)
+            Server.setMapName(MapName)
+            Server.setSeed(Seed)
+            Server.setLandscape(Landscape)
+            Server.setStartDate(StartDate)
+            Server.setMapWidth(MapWidth)
+            Server.setMapHeight(MapHeight)
+
         case b'\x69': #105
             print("ADMIN_PACKET_SERVER_NEWGAME")
         case b'\x6a': #106
             print("ADMIN_PACKET_SERVER_SHUTDOWN")
         case b'\x6b': #107
-            print("ADMON_PACKET_SERVER_DATE")
+            print("ADMIN_PACKET_SERVER_DATE")
+            CurrentDate,Data = Uint32Read(Data)
+            Server.setCurrentDate(CurrentDate)
+            Server.DaysPassed()
         case b'\x6c': #108
             print("ADMIN_PACKET_SERVER_CLIENT_JOIN")
+            print(Data)
         case b'\x6d': #109
             print("ADMIN_PACKET_SERVER_CLIENT_INFO")
         case b'\x6e': #110
@@ -88,6 +221,32 @@ def DeconstructPacket():
             print("ADMIN_PACKET_SERVER_COMPANY_REMOVE")
         case b'\x75': #117
             print("ADMIN_PACKET_SERVER_COMPANY_ECONOMY")
+            while len(Data) >0 :
+                CompanyID, Data = Uint8Read(Data)
+                Money, Data = Sint64Read(Data)
+                Loan, Data = Uint64Read(Data)
+                Income, Data = Sint64Read(Data)
+                Cargo, Data = Uint16Read(Data)
+                LastValue, Data = Uint64Read(Data)
+                LastPerformance, Data = Uint16Read(Data)
+                LastCargo, Data = Uint16Read(Data)
+                PrevValue, Data = Uint64Read(Data)
+                PrevPerformance, Data = Uint16Read(Data)
+                prevCargo, Data = Uint16Read(Data)
+
+                print(CompanyID)
+                print(Money)
+                print(Loan)
+                print(Income)
+                print(Cargo)
+                print(LastValue)
+                print(LastPerformance)
+                print(LastCargo)
+                print(PrevValue)
+                print(PrevPerformance)
+                print(prevCargo)
+                print(Data)
+            print("Done company Stats")
         case b'\x76': #118
             print("ADMIN_PACKET_SERVER_COMPANY_STATS")
         case b'\x77': #119
@@ -112,28 +271,18 @@ def DeconstructPacket():
             print("INVALID_ADMIN_PACKET")
         case _:
             print("Default")
-    Data = bytearray()
-    for byte in range(3,Size):
-        Data.extend(bytes([Packet[byte]]))
-    return(Size,Type,Data)
+    return()
 
+Server = ServerInfo()
+Sock.send(ConstructPacket(0,[AdminPassword,AdminName,AdminVersion])) #Admin Join Packet
+DeconstructPacket(Server)
+DeconstructPacket(Server)
+Sock.send(ConstructPacket(2,[Uint16Write(0),b'\x04\x00'])) #Update, Date, Weekly
+Sock.send(ConstructPacket(2,[Uint16Write(1),b'\x40\x00'])) #Update, Client_Info, Automaitcaly
+Sock.send(ConstructPacket(2,[Uint16Write(2),b'\x40\x00'])) #Update, Company_Info, Automaitcaly
+Sock.send(ConstructPacket(2,[Uint16Write(3),b'\x04\x00'])) #Update, Company_Info, Automaitcaly
 
-Sock.send(ConstructPacket(rawType=0,rawData=[AdminPassword,AdminName,AdminVersion])) #Admin Join Packet
-print("Receiving")
-print(DeconstructPacket())
-print("Receiving")
-print(DeconstructPacket())
-Size = b'\x07\x00'
-Type = b'\x02' #Poll Freq
-UpdateType = b'\x01\x00' #needs to be a unint 16 (2 bytes), admin update date is = 0 = \x00\x00
-Freq = b'\x40' #Weekly Frequency
-tmp = Size+Type+UpdateType+Freq+b'\x00'
-print(tmp)
-Sock.send(tmp)
-counter = 0
-while counter != 5:
-    print("Recv")
-    Size,Type,Data = DeconstructPacket()
-    counter += 1
-Sock.send(ConstructPacket(rawType=1,rawData=[])) #Admin Leave Packet
+while True:
+    DeconstructPacket(Server)
+#Sock.send(ConstructPacket(1,[])) #Admin Leave Packet
 
