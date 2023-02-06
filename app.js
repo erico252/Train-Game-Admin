@@ -39,4 +39,4 @@ client.on('connect', function(connection) {
     connection.send(Packet)
 });
 
-client.connect('127.0.0.1:3977');
+client.connect('ws://127.0.0.1:3977');

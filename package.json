@@ -1,5 +1,10 @@
 {
   "dependencies": {
+    "express": "^4.18.2",
+    "net": "^1.0.2",
+    "socket.io": "^4.5.4",
+    "socket.io-client": "^4.5.4",
+    "typescript": "^4.9.5",
     "websocket": "^1.0.34",
     "ws": "^8.10.0"
   }

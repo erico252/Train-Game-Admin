@@ -55,12 +55,7 @@ class ClientInfo:
         print("ClientClass!")
     
  
-Sock = socket.socket(
-    socket.AF_INET,     #Family = AF_INET (host,port pair)
-    socket.SOCK_STREAM  #Type = SOCK_STREAM (TCP)
-    )
-address = ("127.0.0.1",3977)
-Sock.connect(address)
+
 
 AdminPassword = "Eric"
 AdminName = "Erics Bot"
@@ -282,7 +277,17 @@ def DeconstructPacket(Server:ServerInfo):
             print("Default")
     return()
 
+Sock = socket.socket(
+    socket.AF_INET,     #Family = AF_INET (host,port pair)
+    socket.SOCK_STREAM  #Type = SOCK_STREAM (TCP)
+    )
+print(ConstructPacket(0,[AdminPassword,AdminName,AdminVersion]))
+address = ("127.0.0.1",3977)
+Sock.connect(address)
+
 Server = ServerInfo()
+print(ConstructPacket(0,[AdminPassword,AdminName,AdminVersion]))
+Sock.send(ConstructPacket(100,[AdminPassword,AdminName,AdminVersion]))
 Sock.send(ConstructPacket(0,[AdminPassword,AdminName,AdminVersion])) #Admin Join Packet
 DeconstructPacket(Server)
 DeconstructPacket(Server)
