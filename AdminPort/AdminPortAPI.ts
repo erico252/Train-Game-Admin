@@ -27,6 +27,7 @@ Then move on from there to websites/discord/databases/etc
 
 import { Server } from "net";
 import { EmptyStatement } from "typescript";
+import * as Packets from "./PacketFunctions"
 
 //--IMPORTS--
 var net = require('net');
@@ -36,6 +37,57 @@ const app = express();
 
 
 //--GLOBALS--
+const NetworkErrorCode = {
+    NETWORK_ERROR_GENERAL:0x00, // Try to use this one like never
+   
+    /* Signals from clients */
+    NETWORK_ERROR_DESYNC:0x01,
+    NETWORK_ERROR_SAVEGAME_FAILED:0x02,
+    NETWORK_ERROR_CONNECTION_LOST:0x03,
+    NETWORK_ERROR_ILLEGAL_PACKET:0x04,
+    NETWORK_ERROR_NEWGRF_MISMATCH:0x05,
+   
+    /* Signals from servers */
+    NETWORK_ERROR_NOT_AUTHORIZED:0x06,
+    NETWORK_ERROR_NOT_EXPECTED:0x07,
+    NETWORK_ERROR_WRONG_REVISION:0x08,
+    NETWORK_ERROR_NAME_IN_USE:0x09,
+    NETWORK_ERROR_WRONG_PASSWORD:0x0a,
+    NETWORK_ERROR_COMPANY_MISMATCH:0x0b, // Happens in CLIENT_COMMAND
+    NETWORK_ERROR_KICKED:0x0c,
+    NETWORK_ERROR_CHEATER:0x0d,
+    NETWORK_ERROR_FULL:0x0e,
+    NETWORK_ERROR_TOO_MANY_COMMANDS:0x0f,
+    NETWORK_ERROR_TIMEOUT_PASSWORD:0x10,
+    NETWORK_ERROR_TIMEOUT_COMPUTER:0x11,
+    NETWORK_ERROR_TIMEOUT_MAP:0x12,
+    NETWORK_ERROR_TIMEOUT_JOIN:0x13,
+    NETWORK_ERROR_INVALID_CLIENT_NAME:0x14,
+   
+    NETWORK_ERROR_END:0x15,
+};
+const AdminUpdateFrequency = {
+    Automatic: 0x40,
+    Anually: 0x20,
+    Quarterly: 0x10,
+    Monthly: 0x08,
+    Weekly: 0x04,
+    Daily: 0x02,
+    Poll: 0x01
+}
+const AdminUpdateType = {
+    Date:0x00,
+    ClientInfo: 0x01,
+    CompanyInfo:0x02,
+    CompanyEcon:0x03,
+    CompanyStats:0x04,
+    Chat:0x05,
+    Console:0x06,
+    CMDNames:0x07,
+    CMDLogging:0x08,
+    GameScript:0x09,
+    End:0x0a
+}
 const PacketType = {
     ADMIN_PACKET_ADMIN_JOIN:0,             
     ADMIN_PACKET_ADMIN_QUIT:1,             
@@ -224,209 +276,93 @@ function processType(Type:number,data:Buffer){
         case PacketType.ADMIN_PACKET_ADMIN_EXTERNAL_CHAT:
             console.log(data,"ADMIN_EXTERNAL_CHAT")
             break
-        
+        //----------------------------------------
+        //          ABOVE IS WHAT WE CAN SEND
+        //          BELOW  WE RECEIVE
+        //----------------------------------------
         case PacketType.ADMIN_PACKET_SERVER_FULL:
-            console.log(data,"SERVER_FULL")
+            console.log(Packets.SERVER_FULL(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_BANNED:
-            console.log(data,"SERVER_BANNED")
+            console.log(Packets.SERVER_BANNED(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_ERROR:
-            console.log(data,"SERVER_ERROR")
+            console.log(Packets.SERVER_ERROR(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_PROTOCOL:
-            console.log(data.toString(),"SERVER_PROTOCOL");
+            console.log(Packets.SERVER_PROTOCOL(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_WELCOME:
-        
-        //Extract the NameServer STRING     Random Len, end on 0x00
-            //Find where string ends
-            currentData = nextData.subarray(0,nextData.indexOf(0x00))
-            nextData = nextData.subarray(nextData.indexOf(0x00)+1)
-            console.log(nextData)
-            
-            ServerData.ServerName = currentData.toString()
-            console.log(ServerData.ServerName)
-        //Extract the Version STRING        Random Len, end on 0x00
-            currentData = nextData.subarray(0,nextData.indexOf(0x00))
-            nextData = nextData.subarray(nextData.indexOf(0x00)+1)
-
-            ServerData.ServerVersion = currentData.toString()
-            console.log(ServerData.ServerVersion)  
-        //Extract the DedicatedFlag BOOL    Len = 1
-            currentData = nextData.subarray(0,1)
-            nextData = nextData.subarray(1)
-
-            if(currentData == Buffer.from([0x00])){ServerData.DedicatedFlag = false}
-            else{ServerData.DedicatedFlag = true}
-            console.log(ServerData.DedicatedFlag,nextData)
-        //Extract the NameMap STRING        Random Len, end on 0x00
-            currentData = nextData.subarray(0,nextData.indexOf(0x00))
-            nextData = nextData.subarray(nextData.indexOf(0x00)+1)
-
-            ServerData.MapName = currentData.toString()
-            console.log(ServerData.MapName,nextData)
-        //Extract the Seed UINT32           len = 4
-            currentData = nextData.subarray(0,4)
-            nextData = nextData.subarray(4)
-
-            ServerData.MapSeed = currentData.readUInt32LE(0)
-            console.log(ServerData.MapSeed,nextData)
-        //Extract the Landscape UINT8       len = 1
-            currentData = nextData.subarray(0,1)
-            nextData = nextData.subarray(1)
-
-            ServerData.MapLand = currentData.readUInt8(0)
-            console.log(ServerData.MapLand,nextData)
-        //Extract the StartDate UINT32      len = 4
-            currentData = nextData.subarray(0,4)
-            nextData = nextData.subarray(4)
-
-            ServerData.StartDate = currentData.readUInt32LE(0)
-            console.log(ServerData.StartDate,nextData)
-        //Extract the Width UINT16          len = 2
-            currentData = nextData.subarray(0,2)
-            nextData = nextData.subarray(2)
-
-            ServerData.MapWidth = currentData.readUInt16LE(0)
-            console.log(ServerData.MapWidth,nextData)
-        //Extract the Height UINT16         len = 2
-            ServerData.MapHeight = currentData.readUInt16LE(0)
-            console.log(ServerData.MapHeight)
+            console.log(Packets.SERVER_WELCOME(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_NEWGAME:
-            console.log(data,"SERVER_NEWGAME")
+            console.log(Packets.SERVER_NEWGAME(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_SHUTDOWN:
-            console.log(data,"SERVER_SHUTDOWN")
+            console.log(Packets.SERVER_SHUTDOWN(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_DATE:
-            ServerData.CurrentDate = data.readUInt32LE(0)-ServerData.StartDate
-            console.log(ServerData.CurrentDate,"SERVER_DATE")
+            console.log(Packets.SERVER_DATE(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_CLIENT_JOIN:
-
-            console.log(data,"SERVER_CLIENT_JOIN")
+            console.log(Packets.SERVER_CLIENT_JOIN(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_CLIENT_INFO:
-            let NewClient:ClientObject = {
-                ID:0,
-                Network:"",
-                Name:"",
-                Language:0,
-                JoinDate:0,
-                CompanyID:0
-            }          
-        //Extract ID UINT32
-            currentData = nextData.subarray(0,4)
-            nextData = nextData.subarray(4)
-
-            NewClient.ID = currentData.readUInt32LE(0)
-            console.log(NewClient.ID,nextData)
-        //Extract Network Address STRING
-            currentData = nextData.subarray(0,nextData.indexOf(0x00))
-            nextData = nextData.subarray(nextData.indexOf(0x00)+1)
-
-            NewClient.Network = currentData.toString()
-            console.log(NewClient.Network,nextData)
-        //Extract Name STRING
-            currentData = nextData.subarray(0,nextData.indexOf(0x00))
-            nextData = nextData.subarray(nextData.indexOf(0x00)+1)
-
-            NewClient.Name = currentData.toString()
-            console.log(NewClient.Name,nextData)
-        //Extract Language UINT8
-            currentData = nextData.subarray(0,1)
-            nextData = nextData.subarray(1)
-
-            NewClient.Language = currentData.readUInt8(0)
-            console.log(NewClient.Language,nextData)
-        //Extract Join Date UINT32
-            currentData = nextData.subarray(0,4)
-            nextData = nextData.subarray(4)
-
-            NewClient.JoinDate = currentData.readUInt32LE(0)
-            console.log(NewClient.JoinDate,nextData)
-        //Extract Company ID UINT8
-            currentData = nextData.subarray(0,1)
-            nextData = nextData.subarray(1)
-
-            NewClient.CompanyID = currentData.readUInt8(0)
-            console.log(NewClient.CompanyID,nextData)
-            console.log(data,"^SERVER_CLIENT_INFO^")
+            console.log(Packets.SERVER_CLIENT_INFO(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_CLIENT_UPDATE:
-            let a
-            //Extract Client ID UINT32
-            currentData = nextData.subarray(0,4)
-            nextData = nextData.subarray(4)
-
-            a = currentData.readUInt32LE(0)
-            console.log(a,nextData)
-            //Extract Name STRING
-            currentData = nextData.subarray(0,nextData.indexOf(0x00))
-            nextData = nextData.subarray(nextData.indexOf(0x00)+1)
-
-            a = currentData.toString()
-            console.log(a,nextData)
-            //Extract New Company ID UINT8
-            currentData = nextData.subarray(0,1)
-            nextData = nextData.subarray(1)
-
-            a = currentData.readUInt8(0)
-            console.log(a,nextData)
-            console.log(data,"SERVER_CLIENT_UPDATE")
+            console.log(Packets.SERVER_CLIENT_UPDATE(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_CLIENT_QUIT:
-            console.log(data,"SERVER_CLIENT_QUIT")
+            console.log(Packets.SERVER_CLIENT_QUIT(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_CLIENT_ERROR:
-            console.log(data,"SERVER_CLIENT_ERROR")
+            console.log(Packets.SERVER_CLIENT_ERROR(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_COMPANY_NEW:
-            console.log(data,"SERVER__COMPANY_NEW")
+            console.log(Packets.SERVER_COMPANY_NEW(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_COMPANY_INFO:
-            console.log(data,"SERVER_COMPANY_INFO")
+            console.log(Packets.SERVER_COMPANY_INFO(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_COMPANY_UPDATE:
-            console.log(data,"SERVER_COMPANY_UPDATE")
+            console.log(Packets.SERVER_COMPANY_UPDATE(data))
             break
-        case PacketType.ADMIN_PACKET_SERVER_COMPANY_UPDATE:
-            console.log(data,"SERVER_COMPANY_REMOVE")
+        case PacketType.ADMIN_PACKET_SERVER_COMPANY_REMOVE:
+            console.log(Packets.SERVER_COMPANY_REMOVE(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_COMPANY_ECONOMY:
-            console.log(data,"SERVER_COMPANY_ECONOMY")
+            console.log(Packets.SERVER_COMPANY_ECONOMY(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_COMPANY_STATS:
-            console.log(data,"SERVER_COMPANY_STATS")
+            console.log(Packets.SERVER_COMPANY_STATS(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_CHAT:
-            console.log(data,"SERVER_CHAT")
+            console.log(Packets.SERVER_CHAT(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_RCON:
-            console.log(data,"SERVER_RCON")
+            console.log(Packets.SERVER_RCON(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_CONSOLE:
-            console.log(data,"SERVER_CONSOLE")
+            console.log(Packets.SERVER_CONSOLE(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_CMD_NAMES:
-            console.log(data,"SERVER_CMD_NAMES")
+            console.log(Packets.SERVER_CMD_NAMES(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_CMD_LOGGING_OLD:
-            console.log(data,"SERVER_CMD_LOGGING_OLD")
+            console.log(Packets.SERVER_CMD_LOGGING_OLD(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_GAMESCRIPT:
-            console.log(data,"SERVER_GAMESCRIPT")
+            console.log(Packets.SERVER_GAMESCRIPT(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_RCON_END:
-            console.log(data,"SERVER_RCON_END")
+            console.log(Packets.SERVER_RCON_END(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_PONG:
-            console.log(data,"SERVER_PONG")
+            console.log(Packets.SERVER_PONG(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_CMD_LOGGING:
-            console.log(data,"SERVER_CMD_LOGGING")
+            console.log(Packets.SERVER_CMD_LOGGING(data))
         default:
           console.log(`The Packet TYpe ${Type} is not yet accounted for`)
       }
@@ -439,6 +375,21 @@ let socket = new net.Socket();
 socket.connect(PORT, HOST, function() {
     console.log('CONNECTED TO: ' + HOST + ':' + PORT);
     socket.write(createAdminJoin("Eric", "Erics Bot", "1.0"));
+    //Above lets us connect the bot to the server. Once connected
+    //we need to send it config so that it can update us on events
+    //for example
+    //DATE | WEEKLY
+    //CLIENT INFO | AUTOMATIC
+    //COMPANY INFO | AUTOMATIC
+    //COMPANY ECONOMY | QUARTERLY
+    //COMPANY STATS | YEARLY
+    //
+    //The above will provide us with all the game data we will need
+    socket.write(Buffer.from([0x07, 0x00, 0x02, AdminUpdateType.Date, 0x00, AdminUpdateFrequency.Weekly, 0x00]))            //DATE             | WEEKLY
+    socket.write(Buffer.from([0x07, 0x00, 0x02, AdminUpdateType.ClientInfo, 0x00, AdminUpdateFrequency.Automatic, 0x00]))   //CLIENT INFO      | AUTOMATIC
+    socket.write(Buffer.from([0x07, 0x00, 0x02, AdminUpdateType.CompanyInfo, 0x00, AdminUpdateFrequency.Automatic, 0x00]))  //COMPANY INFO     | AUTOMATIC
+    socket.write(Buffer.from([0x07, 0x00, 0x02, AdminUpdateType.CompanyEcon, 0x00, AdminUpdateFrequency.Quarterly, 0x00]))  //COMPANY ECONOMY  | QUARTERLY
+    socket.write(Buffer.from([0x07, 0x00, 0x02, AdminUpdateType.CompanyStats, 0x00, AdminUpdateFrequency.Anually, 0x00]))   //COMPANY STATS    | ANNUALY
 });
 socket.on('data', function(data) {
     //everytime the socket receives data, this event is triggered
@@ -470,28 +421,7 @@ app.get("/update/:type/:freq",(req,res) => {
     //Packet Format is SIZE SIZE TYPE DATA 
     //ADMIN_PACKET_UPDATE_FREQUENCY = 0x02
     //Frequenices are
-    const AdminUpdateFrequency = {
-        Automatic: 0x40,
-        Anually: 0x20,
-        Quarterly: 0x10,
-        Monthly: 0x08,
-        Weekly: 0x04,
-        Daily: 0x02,
-        Poll: 0x01
-    }
-    const AdminUpdateType = {
-        Date:0x00,
-        ClientInfo: 0x01,
-        CompanyInfo:0x02,
-        CompanyEcon:0x03,
-        CompanyStats:0x04,
-        Chat:0x05,
-        Console:0x06,
-        CMDNames:0x07,
-        CMDLogging:0x08,
-        GameScript:0x09,
-        End:0x10
-    }
+    
     // 0,Automatic,Anually,Quarterly Monthly,Weekly,Daily,Poll
     let temp:Buffer = Buffer.from([0x07,0x00,0x02,AdminUpdateType[req.params["type"]],0x00,AdminUpdateFrequency[req.params["freq"]],0x00])
     socket.write(temp);
