@@ -291,6 +291,7 @@ Sock.send(ConstructPacket(100,[AdminPassword,AdminName,AdminVersion]))
 Sock.send(ConstructPacket(0,[AdminPassword,AdminName,AdminVersion])) #Admin Join Packet
 DeconstructPacket(Server)
 DeconstructPacket(Server)
+print(ConstructPacket(2,[Uint16Write(0),b'\x04\x00']),"UpdatePAcket")
 Sock.send(ConstructPacket(2,[Uint16Write(0),b'\x04\x00'])) #Update, Date, Weekly
 Sock.send(ConstructPacket(2,[Uint16Write(1),b'\x40\x00'])) #Update, Client_Info, Automaitcaly
 Sock.send(ConstructPacket(2,[Uint16Write(2),b'\x40\x00'])) #Update, Company_Info, Automaitcaly

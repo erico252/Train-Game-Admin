@@ -19,3 +19,9 @@ we can follow pythons (socket)[https://docs.python.org/3/library/socket.html] do
 ## Integrate with Discord Bot
 
 It would be cool to as an end goal send commands from discord to control the server3
+
+#
+
+What needs to happen is that i need to create a DATA OBJECT. This data object can hold static info and
+info that changes, ithink htis can be achived via a class and getter/setter methods. Either that
+or using a JSON object. JSON Object might be easiest
