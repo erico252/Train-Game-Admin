@@ -10,7 +10,7 @@ function ExtractBOOL(InputData){
 function ExtractUINT8(InputData){
     let Value:number
     let OutputData:Buffer
-    Value = InputData.subarray(0,1)
+    Value = InputData.subarray(0,1).readInt8(0)
     OutputData = InputData.subarray(1)
     //console.log(Value,OutputData)
     return [Value,OutputData]
@@ -166,13 +166,13 @@ export function SERVER_NEWGAME(InputData){
     let NextData:Buffer = Buffer.from([0x00])
     let Values:Array<any> = []
     let Res:Array<any> = []
-    return("New Game Started!")
+    return(["New Game Started!"])
 }
 export function SERVER_SHUTDOWN(InputData){
     let NextData:Buffer = Buffer.from([0x00])
     let Values:Array<any> = []
     let Res:Array<any> = []
-    return("Server Shutting Down!")
+    return(["Server Shutting Down!"])
 }
 export function SERVER_DATE(InputData){
     let NextData:Buffer = Buffer.from([0x00])
@@ -226,6 +226,7 @@ export function SERVER_CLIENT_INFO(InputData){
     Res = ExtractBOOL(NextData)
     Values.push(Res[0])
     NextData = Res[1]
+    return(Values)
 }
 export function SERVER_CLIENT_UPDATE(InputData){
     let NextData:Buffer = Buffer.from([0x00])
@@ -468,6 +469,7 @@ export function SERVER_COMPANY_STATS(InputData){
     Res = ExtractUINT16(NextData)
     Values.push(Res[0])
     NextData = Res[1]
+    return(Values)
 }
 export function SERVER_CHAT(InputData){
     let NextData:Buffer = Buffer.from([0x00])

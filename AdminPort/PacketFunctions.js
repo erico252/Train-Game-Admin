@@ -17,7 +17,7 @@ function ExtractBOOL(InputData) {
 function ExtractUINT8(InputData) {
     var Value;
     var OutputData;
-    Value = InputData.subarray(0, 1);
+    Value = InputData.subarray(0, 1).readInt8(0);
     OutputData = InputData.subarray(1);
     //console.log(Value,OutputData)
     return [Value, OutputData];
@@ -177,14 +177,14 @@ function SERVER_NEWGAME(InputData) {
     var NextData = Buffer.from([0x00]);
     var Values = [];
     var Res = [];
-    return ("New Game Started!");
+    return (["New Game Started!"]);
 }
 exports.SERVER_NEWGAME = SERVER_NEWGAME;
 function SERVER_SHUTDOWN(InputData) {
     var NextData = Buffer.from([0x00]);
     var Values = [];
     var Res = [];
-    return ("Server Shutting Down!");
+    return (["Server Shutting Down!"]);
 }
 exports.SERVER_SHUTDOWN = SERVER_SHUTDOWN;
 function SERVER_DATE(InputData) {
@@ -241,6 +241,7 @@ function SERVER_CLIENT_INFO(InputData) {
     Res = ExtractBOOL(NextData);
     Values.push(Res[0]);
     NextData = Res[1];
+    return (Values);
 }
 exports.SERVER_CLIENT_INFO = SERVER_CLIENT_INFO;
 function SERVER_CLIENT_UPDATE(InputData) {
@@ -491,6 +492,7 @@ function SERVER_COMPANY_STATS(InputData) {
     Res = ExtractUINT16(NextData);
     Values.push(Res[0]);
     NextData = Res[1];
+    return (Values);
 }
 exports.SERVER_COMPANY_STATS = SERVER_COMPANY_STATS;
 function SERVER_CHAT(InputData) {

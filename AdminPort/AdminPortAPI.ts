@@ -28,6 +28,8 @@ Then move on from there to websites/discord/databases/etc
 import { Server } from "net";
 import { EmptyStatement } from "typescript";
 import * as Packets from "./PacketFunctions"
+import {ServerObject, ClientObject, CompanyObject, CompanyEconomyObject, CompanyStatsObject}  from "./Interfaces"
+import {NetworkErrorCode, AdminUpdateFrequency, AdminUpdateType, PacketType, HOST, PORT} from "./Constants"
 
 //--IMPORTS--
 var net = require('net');
@@ -37,110 +39,13 @@ const app = express();
 
 
 //--GLOBALS--
-const NetworkErrorCode = {
-    NETWORK_ERROR_GENERAL:0x00, // Try to use this one like never
-   
-    /* Signals from clients */
-    NETWORK_ERROR_DESYNC:0x01,
-    NETWORK_ERROR_SAVEGAME_FAILED:0x02,
-    NETWORK_ERROR_CONNECTION_LOST:0x03,
-    NETWORK_ERROR_ILLEGAL_PACKET:0x04,
-    NETWORK_ERROR_NEWGRF_MISMATCH:0x05,
-   
-    /* Signals from servers */
-    NETWORK_ERROR_NOT_AUTHORIZED:0x06,
-    NETWORK_ERROR_NOT_EXPECTED:0x07,
-    NETWORK_ERROR_WRONG_REVISION:0x08,
-    NETWORK_ERROR_NAME_IN_USE:0x09,
-    NETWORK_ERROR_WRONG_PASSWORD:0x0a,
-    NETWORK_ERROR_COMPANY_MISMATCH:0x0b, // Happens in CLIENT_COMMAND
-    NETWORK_ERROR_KICKED:0x0c,
-    NETWORK_ERROR_CHEATER:0x0d,
-    NETWORK_ERROR_FULL:0x0e,
-    NETWORK_ERROR_TOO_MANY_COMMANDS:0x0f,
-    NETWORK_ERROR_TIMEOUT_PASSWORD:0x10,
-    NETWORK_ERROR_TIMEOUT_COMPUTER:0x11,
-    NETWORK_ERROR_TIMEOUT_MAP:0x12,
-    NETWORK_ERROR_TIMEOUT_JOIN:0x13,
-    NETWORK_ERROR_INVALID_CLIENT_NAME:0x14,
-   
-    NETWORK_ERROR_END:0x15,
-};
-const AdminUpdateFrequency = {
-    Automatic: 0x40,
-    Anually: 0x20,
-    Quarterly: 0x10,
-    Monthly: 0x08,
-    Weekly: 0x04,
-    Daily: 0x02,
-    Poll: 0x01
-}
-const AdminUpdateType = {
-    Date:0x00,
-    ClientInfo: 0x01,
-    CompanyInfo:0x02,
-    CompanyEcon:0x03,
-    CompanyStats:0x04,
-    Chat:0x05,
-    Console:0x06,
-    CMDNames:0x07,
-    CMDLogging:0x08,
-    GameScript:0x09,
-    End:0x0a
-}
-const PacketType = {
-    ADMIN_PACKET_ADMIN_JOIN:0,             
-    ADMIN_PACKET_ADMIN_QUIT:1,             
-    ADMIN_PACKET_ADMIN_UPDATE_FREQUENCY:2, 
-    ADMIN_PACKET_ADMIN_POLL:3,             
-    ADMIN_PACKET_ADMIN_CHAT:4,             
-    ADMIN_PACKET_ADMIN_RCON:5,             
-    ADMIN_PACKET_ADMIN_GAMESCRIPT:6,       
-    ADMIN_PACKET_ADMIN_PING:7,             
-    ADMIN_PACKET_ADMIN_EXTERNAL_CHAT:8,    
-    
-    ADMIN_PACKET_SERVER_FULL:100,      
-    ADMIN_PACKET_SERVER_BANNED:101,          
-    ADMIN_PACKET_SERVER_ERROR:102,           
-    ADMIN_PACKET_SERVER_PROTOCOL:103,        
-    ADMIN_PACKET_SERVER_WELCOME:104,         
-    ADMIN_PACKET_SERVER_NEWGAME:105,         
-    ADMIN_PACKET_SERVER_SHUTDOWN:106,        
-    
-    ADMIN_PACKET_SERVER_DATE:107,            
-    ADMIN_PACKET_SERVER_CLIENT_JOIN:108,     
-    ADMIN_PACKET_SERVER_CLIENT_INFO:109,     
-    ADMIN_PACKET_SERVER_CLIENT_UPDATE:110,   
-    ADMIN_PACKET_SERVER_CLIENT_QUIT:111,     
-    ADMIN_PACKET_SERVER_CLIENT_ERROR:112,    
-    ADMIN_PACKET_SERVER_COMPANY_NEW:113,     
-    ADMIN_PACKET_SERVER_COMPANY_INFO:114,    
-    ADMIN_PACKET_SERVER_COMPANY_UPDATE:115,  
-    ADMIN_PACKET_SERVER_COMPANY_REMOVE:116,  
-    ADMIN_PACKET_SERVER_COMPANY_ECONOMY:117, 
-    ADMIN_PACKET_SERVER_COMPANY_STATS:118,   
-    ADMIN_PACKET_SERVER_CHAT:119,            
-    ADMIN_PACKET_SERVER_RCON:120,            
-    ADMIN_PACKET_SERVER_CONSOLE:121,         
-    ADMIN_PACKET_SERVER_CMD_NAMES:122,       
-    ADMIN_PACKET_SERVER_CMD_LOGGING_OLD:123, 
-    ADMIN_PACKET_SERVER_GAMESCRIPT:124,      
-    ADMIN_PACKET_SERVER_RCON_END:125,        
-    ADMIN_PACKET_SERVER_PONG:126,            
-    ADMIN_PACKET_SERVER_CMD_LOGGING:127,     
-    
-    INVALID_ADMIN_PACKET: 255,         
-}
-
-const HOST:string = '127.0.0.1';
-const PORT:number = 3977;
-let ServerData:ServerDataObject = {
+export let ServerObj:ServerObject = {
     Companies: [],
     Clients: [],
     CurrentDate: 0,
     ServerName: "",
     MapSeed: 0,
-    MapLand: 0,
+    Landscape: 0,
     MapHeight: 0,
     MapWidth: 0,
     StartDate: 0,
@@ -148,70 +53,10 @@ let ServerData:ServerDataObject = {
     DedicatedFlag: false,
     MapName:""
 }
-let RawReceivedPacket:Buffer
+export let RawReceivedPacket:Buffer
 
 
-//--INTERFACES--
-interface ServerDataObject {
-    Companies:Array<CompanyObject>
-    Clients:Array<ClientObject>
-    CurrentDate:number
-    ServerName:string
-    ServerVersion:string
-    DedicatedFlag:boolean
-    MapName:string
-    MapSeed:number
-    MapLand:number
-    MapHeight:number
-    MapWidth:number
-    StartDate:number
-    
-}
-interface CompanyObject {
-    ID:number
-    Name:string
-    ManagerName:string
-    Color:number
-    PasswordFlag:boolean
-    StartYear:number
-    AIFlag:boolean
-    Economy:CompanyEconomyObject
-    Stats:CompanyStatsObject
 
-}
-interface ClientObject {
-    ID:number
-    Network:string
-    Name:string
-    Language:number
-    JoinDate:number
-    CompanyID:number
-}
-interface CompanyEconomyObject {
-    Money:number
-    Loan:number
-    Income:number
-    ThisDeliveredCargo:number
-    LastCompanyValue:number
-    LastPerformance:number
-    LastDeliveredCargo:number
-    PrevCompanyValue:number
-    PrevPerformance:number
-    PrevDeliveredCargo:number
-
-}
-interface CompanyStatsObject {
-    Trains:number
-    Lorries:number
-    Busses:number
-    Planes:number
-    Ships:number
-    TrainStations:number
-    LorryStations:number
-    BusStops:number
-    AirPorts:number
-    Harbours:number
-}
 //--FUNCTIONS--
 function createAdminJoin(Password:string, BotName:string, Version:string) {
     //SIZE  SIZE 0x00 BotName 0x00 Password 0x00  Version 0x00
@@ -223,7 +68,6 @@ function createAdminJoin(Password:string, BotName:string, Version:string) {
     Packet[0] = Packet.length
     return Packet
 }
-
 function processPacket(RawPacket:Buffer){
     let rawLength:number = RawPacket.length
     let cumulativeLength:number = 0
@@ -244,10 +88,11 @@ function processType(Type:number,data:Buffer){
     //Likely we will just need a large switch case to  deal with all of the diffrent Packets
     //This is probably easiest to do by abstractig it away in a seperate file but we will 
     //Attempt on small scale here
+    console.log("---------------")
+    console.log("---------------")
+    console.log("---------------")
     let i:number = 0
-    let j:number = 0
-    let nextData:Buffer = data
-    let currentData:Buffer
+    let response:Array<any>
     switch (Type) {
         case PacketType.ADMIN_PACKET_ADMIN_JOIN:
             console.log(data,"ADMIN_JOIN")
@@ -290,52 +135,175 @@ function processType(Type:number,data:Buffer){
             console.log(Packets.SERVER_ERROR(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_PROTOCOL:
-            console.log(Packets.SERVER_PROTOCOL(data))
+            response = Packets.SERVER_PROTOCOL(data)
             break
         case PacketType.ADMIN_PACKET_SERVER_WELCOME:
-            console.log(Packets.SERVER_WELCOME(data))
+            response = Packets.SERVER_WELCOME(data)
+            ServerObj.ServerName = response[0]
+            ServerObj.ServerVersion = response[1]
+            ServerObj.DedicatedFlag = response[2]
+            ServerObj.MapName = response[3]
+            ServerObj.MapSeed = response[4]
+            ServerObj.Landscape = response[5].value
+            ServerObj.StartDate = response[6]
+            ServerObj.MapWidth = response[7]
+            ServerObj.MapHeight = response[8]
             break
         case PacketType.ADMIN_PACKET_SERVER_NEWGAME:
-            console.log(Packets.SERVER_NEWGAME(data))
+            response = Packets.SERVER_NEWGAME(data)
             break
         case PacketType.ADMIN_PACKET_SERVER_SHUTDOWN:
             console.log(Packets.SERVER_SHUTDOWN(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_DATE:
-            console.log(Packets.SERVER_DATE(data))
+            response = Packets.SERVER_DATE(data)
+            ServerObj.CurrentDate = response[0]
             break
         case PacketType.ADMIN_PACKET_SERVER_CLIENT_JOIN:
-            console.log(Packets.SERVER_CLIENT_JOIN(data))
+            response = Packets.SERVER_CLIENT_JOIN(data)
+            let NewClient:ClientObject = {
+                ID: response[0],
+                ClientName:null,
+                ClientCompanyID:null,
+            }
+            ServerObj.Clients.push(NewClient)
             break
         case PacketType.ADMIN_PACKET_SERVER_CLIENT_INFO:
-            console.log(Packets.SERVER_CLIENT_INFO(data))
+            response = Packets.SERVER_CLIENT_INFO(data)
+            console.log("What is triggering this?")
             break
         case PacketType.ADMIN_PACKET_SERVER_CLIENT_UPDATE:
-            console.log(Packets.SERVER_CLIENT_UPDATE(data))
+            response = Packets.SERVER_CLIENT_UPDATE(data)
+            let UpdateClientID = response[0]
+            ServerObj.Clients.forEach((Client) => {
+                if(Client.ID == UpdateClientID){
+                    Client.ClientName = response[1]
+                    Client.ClientCompanyID = response[2]
+                }
+            })
             break
         case PacketType.ADMIN_PACKET_SERVER_CLIENT_QUIT:
-            console.log(Packets.SERVER_CLIENT_QUIT(data))
+            response = Packets.SERVER_CLIENT_QUIT(data)
+            let RemovalClientID:number = response[0]
+            i = 0
+            ServerObj.Clients.forEach((Client,index) => {
+                if(RemovalClientID == Client.ID){
+                    i = index
+                }
+            })
+            ServerObj.Clients.splice(i)
             break
         case PacketType.ADMIN_PACKET_SERVER_CLIENT_ERROR:
             console.log(Packets.SERVER_CLIENT_ERROR(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_COMPANY_NEW:
-            console.log(Packets.SERVER_COMPANY_NEW(data))
+            response = Packets.SERVER_COMPANY_NEW(data)
+            let NewCompanyEconomy:CompanyEconomyObject = {
+                Money:0,
+                Loan:0,
+                Income:0,
+                ThisDeliveredCargo:0,
+                LastCompanyValue:0,
+                LastPerformance:0,
+                LastDeliveredCargo:0,
+                PrevCompanyValue:0,
+                PrevPerformance:0,
+                PrevDeliveredCargo:0
+            }
+            let NewCompanyStats:CompanyStatsObject = {
+                Trains:0,
+                Lorries:0,
+                Busses:0,
+                Planes:0,
+                Ships:0,
+                TrainStations:0,
+                LorryStations:0,
+                BusStops:0,
+                AirPorts:0,
+                Harbours:0
+            }
+            let NewCompany:CompanyObject = {
+                ID: response[0],
+                CompanyName: null,
+                ManagerName: null,
+                Color: null,
+                PasswordFlag: null,
+                Share1:null,
+                Share2:null,
+                Share3:null,
+                Share4:null,
+                Economy: NewCompanyEconomy,
+                Stats: NewCompanyStats
+            }
+            
+            ServerObj.Companies.push(NewCompany)
             break
         case PacketType.ADMIN_PACKET_SERVER_COMPANY_INFO:
             console.log(Packets.SERVER_COMPANY_INFO(data))
             break
         case PacketType.ADMIN_PACKET_SERVER_COMPANY_UPDATE:
-            console.log(Packets.SERVER_COMPANY_UPDATE(data))
+            response = Packets.SERVER_COMPANY_UPDATE(data)
+            let UpdateCompanyID:number = response[0]
+            ServerObj.Companies.forEach((Company) => {
+                if(UpdateCompanyID==Company.ID){
+                    Company.CompanyName = response[1],
+                    Company.ManagerName = response[2],
+                    Company.Color = response[3],
+                    Company.PasswordFlag = response[4],
+                    Company.Share1 = response[5],
+                    Company.Share2 = response[6],
+                    Company.Share3 = response[7],
+                    Company.Share4 = response[8]
+                }
+            })
+
             break
         case PacketType.ADMIN_PACKET_SERVER_COMPANY_REMOVE:
-            console.log(Packets.SERVER_COMPANY_REMOVE(data))
+            response = Packets.SERVER_COMPANY_REMOVE(data)
+            let RemovalCompanyID:number = response[0]
+            i = 0
+            ServerObj.Companies.forEach((Company,index) => {
+                if(RemovalCompanyID == Company.ID){
+                    i = index
+                }
+            })
+            ServerObj.Companies.splice(i)
             break
         case PacketType.ADMIN_PACKET_SERVER_COMPANY_ECONOMY:
-            console.log(Packets.SERVER_COMPANY_ECONOMY(data))
+            response = Packets.SERVER_COMPANY_ECONOMY(data)
+            let EconomyCompanyID:number = response[0]
+            ServerObj.Companies.forEach((Company) => {
+                if(EconomyCompanyID == Company.ID){
+                    Company.Economy.Money = response[1]
+                    Company.Economy.Loan = response[2]
+                    Company.Economy.Income = response[3]
+                    Company.Economy.ThisDeliveredCargo = response[4]
+                    Company.Economy.LastCompanyValue = response[5]
+                    Company.Economy.LastPerformance = response[6]
+                    Company.Economy.LastDeliveredCargo = response[7]
+                    Company.Economy.PrevCompanyValue = response[8]
+                    Company.Economy.PrevPerformance = response[9]
+                    Company.Economy.PrevDeliveredCargo = response[10]
+                }
+            })
             break
         case PacketType.ADMIN_PACKET_SERVER_COMPANY_STATS:
-            console.log(Packets.SERVER_COMPANY_STATS(data))
+            response = Packets.SERVER_COMPANY_STATS(data)
+            let StatsCompanyID:number = response[0]
+            ServerObj.Companies.forEach((Company) => {
+                if(StatsCompanyID == Company.ID){
+                    Company.Stats.Trains = response[1]
+                    Company.Stats.Lorries = response[2]
+                    Company.Stats.Busses = response[3]
+                    Company.Stats.Planes = response[4]
+                    Company.Stats.Ships = response[5]
+                    Company.Stats.TrainStations = response[6]
+                    Company.Stats.LorryStations = response[7]
+                    Company.Stats.BusStops = response[8]
+                    Company.Stats.AirPorts = response[9]
+                    Company.Stats.Harbours = response[10]
+                }
+            })
             break
         case PacketType.ADMIN_PACKET_SERVER_CHAT:
             console.log(Packets.SERVER_CHAT(data))
@@ -366,6 +334,7 @@ function processType(Type:number,data:Buffer){
         default:
           console.log(`The Packet TYpe ${Type} is not yet accounted for`)
       }
+      console.log(ServerObj)
 }
 //--MAIN--
 //Create a socket to be used for connection
@@ -414,7 +383,7 @@ app.get("/", (req,res) => { // A Splash for API
 
 app.get("/server", (req,res) => {
     res.json(
-        ServerData
+        ServerObj
     )
 })
 app.get("/update/:type/:freq",(req,res) => {
