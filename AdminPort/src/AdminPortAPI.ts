@@ -27,9 +27,9 @@ Then move on from there to websites/discord/databases/etc
 
 import { Server } from "net";
 import { EmptyStatement } from "typescript";
-import * as Packets from "./PacketFunctions"
-import {ServerObject, ClientObject, CompanyObject, CompanyEconomyObject, CompanyStatsObject}  from "./Interfaces"
-import {NetworkErrorCode, AdminUpdateFrequency, AdminUpdateType, PacketType, HOST, PORT} from "./Constants"
+import * as Packets from "../dist/PacketFunctions"
+import {ServerObject, ClientObject, CompanyObject, CompanyEconomyObject, CompanyStatsObject}  from "../dist/Interfaces"
+import {NetworkErrorCode, AdminUpdateFrequency, AdminUpdateType, PacketType, HOST, PORT} from "../dist/Constants"
 
 //--IMPORTS--
 var net = require('net');

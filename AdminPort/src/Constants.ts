@@ -1,4 +1,4 @@
-import * as Interface from "./Interfaces"
+import * as Interface from "../dist/Interfaces"
 
 export const NetworkErrorCode = {
     NETWORK_ERROR_GENERAL:0x00, // Try to use this one like never
