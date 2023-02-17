@@ -3,7 +3,9 @@
         "strict": true,
         "forceConsistentCasingInFileNames": true,
         "outDir": "dist",
+        "strictPropertyInitialization": false,
         "noImplicitAny":false
     },
-    "include": ["src/*"]
+    "include": ["src/AdminPortAPI.ts","src/ExpressServer.ts","src/PacketFunctions.ts"],
+    "exclude": ["src/Constants.ts","src/Interfaces.ts"]
   }

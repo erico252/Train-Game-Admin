@@ -25,21 +25,19 @@ one for the Discord bot. They communicate via RESTful API calls
 Then move on from there to websites/discord/databases/etc
 */
 
-import { Server } from "net";
+//--IMPORTS--
+
+import * as net from "net";
 import { EmptyStatement } from "typescript";
 import * as Packets from "../dist/PacketFunctions"
 import {ServerObject, ClientObject, CompanyObject, CompanyEconomyObject, CompanyStatsObject}  from "../dist/Interfaces"
 import {NetworkErrorCode, AdminUpdateFrequency, AdminUpdateType, PacketType, HOST, PORT} from "../dist/Constants"
 
-//--IMPORTS--
-var net = require('net');
-const express = require("express");
-const app = express();
-
 
 
 //--GLOBALS--
-export let ServerObj:ServerObject = {
+const ServerObjProtoType:ServerObject = {
+    UUID: null,
     Companies: [],
     Clients: [],
     CurrentDate: 0,
@@ -68,7 +66,7 @@ function createAdminJoin(Password:string, BotName:string, Version:string) {
     Packet[0] = Packet.length
     return Packet
 }
-function processPacket(RawPacket:Buffer){
+function processPacket(RawPacket:Buffer, Obj:ServerObject){
     let rawLength:number = RawPacket.length
     let cumulativeLength:number = 0
     let ActiveType:number
@@ -79,12 +77,12 @@ function processPacket(RawPacket:Buffer){
         ActiveType = RawPacket[cumulativeLength+2]
         //Now that we have the type we can begin to take infomation out of the packets
         ActivePacket = RawPacket.subarray(cumulativeLength,cumulativeLength+RawPacket[cumulativeLength])
-        processType(ActiveType,ActivePacket.subarray(3,ActivePacket.length))
+        processType(ActiveType,ActivePacket.subarray(3,ActivePacket.length), Obj)
         cumulativeLength = cumulativeLength + RawPacket[cumulativeLength]
     }
 
 }
-function processType(Type:number,data:Buffer){
+function processType(Type:number,data:Buffer, ServerObj:ServerObject){
     //Likely we will just need a large switch case to  deal with all of the diffrent Packets
     //This is probably easiest to do by abstractig it away in a seperate file but we will 
     //Attempt on small scale here
@@ -337,76 +335,44 @@ function processType(Type:number,data:Buffer){
       console.log(ServerObj)
 }
 //--MAIN--
-//Create a socket to be used for connection
+//Create a socket to be used for connection 
+export function createConnection(UUID:number,HOST:string,PORT:number,PASS:string,NAME:string,VERISON:string){
+    let ServerObj:ServerObject = Object.assign({},ServerObjProtoType)
+    console.log("Freesssshhh")
+    console.log(ServerObj,"Fresh")
+    ServerObj.UUID = UUID
+    let socket = new net.Socket();
+    //Connect to the open and active OpenTTD Server
+    socket.connect(PORT, HOST, function() {
+        console.log('CONNECTED TO: ' + HOST + ':' + PORT);
+        socket.write(createAdminJoin(PASS, NAME, VERISON));
+        //Above lets us connect the bot to the server. Once connected
+        //we need to send it config so that it can update us on events
+        //for example
+        //DATE | WEEKLY
+        //CLIENT INFO | AUTOMATIC
+        //COMPANY INFO | AUTOMATIC
+        //COMPANY ECONOMY | QUARTERLY
+        //COMPANY STATS | YEARLY
+        //
+        //The above will provide us with all the game data we will need
+        socket.write(Buffer.from([0x07, 0x00, 0x02, AdminUpdateType.Date, 0x00, AdminUpdateFrequency.Weekly, 0x00]))            //DATE             | WEEKLY
+        socket.write(Buffer.from([0x07, 0x00, 0x02, AdminUpdateType.ClientInfo, 0x00, AdminUpdateFrequency.Automatic, 0x00]))   //CLIENT INFO      | AUTOMATIC
+        socket.write(Buffer.from([0x07, 0x00, 0x02, AdminUpdateType.CompanyInfo, 0x00, AdminUpdateFrequency.Automatic, 0x00]))  //COMPANY INFO     | AUTOMATIC
+        socket.write(Buffer.from([0x07, 0x00, 0x02, AdminUpdateType.CompanyEcon, 0x00, AdminUpdateFrequency.Quarterly, 0x00]))  //COMPANY ECONOMY  | QUARTERLY
+        socket.write(Buffer.from([0x07, 0x00, 0x02, AdminUpdateType.CompanyStats, 0x00, AdminUpdateFrequency.Anually, 0x00]))   //COMPANY STATS    | ANNUALY
+    });
+    socket.on('data', function(data) {
+        //everytime the socket receives data, this event is triggered
+        //Everytime Event is triggered we need to process the data
+        //Mulitple Packets coould arrive in single event
+        //For this reason we will need to use the SIZE to seperate Packets
+        processPacket(data,ServerObj)
 
-let socket = new net.Socket();
-//Connect to the open and active OpenTTD Server
-socket.connect(PORT, HOST, function() {
-    console.log('CONNECTED TO: ' + HOST + ':' + PORT);
-    socket.write(createAdminJoin("Eric", "Erics Bot", "1.0"));
-    //Above lets us connect the bot to the server. Once connected
-    //we need to send it config so that it can update us on events
-    //for example
-    //DATE | WEEKLY
-    //CLIENT INFO | AUTOMATIC
-    //COMPANY INFO | AUTOMATIC
-    //COMPANY ECONOMY | QUARTERLY
-    //COMPANY STATS | YEARLY
-    //
-    //The above will provide us with all the game data we will need
-    socket.write(Buffer.from([0x07, 0x00, 0x02, AdminUpdateType.Date, 0x00, AdminUpdateFrequency.Weekly, 0x00]))            //DATE             | WEEKLY
-    socket.write(Buffer.from([0x07, 0x00, 0x02, AdminUpdateType.ClientInfo, 0x00, AdminUpdateFrequency.Automatic, 0x00]))   //CLIENT INFO      | AUTOMATIC
-    socket.write(Buffer.from([0x07, 0x00, 0x02, AdminUpdateType.CompanyInfo, 0x00, AdminUpdateFrequency.Automatic, 0x00]))  //COMPANY INFO     | AUTOMATIC
-    socket.write(Buffer.from([0x07, 0x00, 0x02, AdminUpdateType.CompanyEcon, 0x00, AdminUpdateFrequency.Quarterly, 0x00]))  //COMPANY ECONOMY  | QUARTERLY
-    socket.write(Buffer.from([0x07, 0x00, 0x02, AdminUpdateType.CompanyStats, 0x00, AdminUpdateFrequency.Anually, 0x00]))   //COMPANY STATS    | ANNUALY
-});
-socket.on('data', function(data) {
-    //everytime the socket receives data, this event is triggered
-    //Everytime Event is triggered we need to process the data
-    //Mulitple Packets coould arrive in single event
-    //For this reason we will need to use the SIZE to seperate Packets
-
-    RawReceivedPacket = Buffer.from(data,"hex")
-    processPacket(RawReceivedPacket)
-
-});
-// Add a 'close' event handler for the client socket
-socket.on('close', function() {
-    console.log('Connection closed');
-});
-
-//--ROUTES--
-app.get("/", (req,res) => { // A Splash for API
-    res.send("RESTful API for OpenTTD implemented via NodeJS")
-    
-})
-
-app.get("/server", (req,res) => {
-    res.json(
-        ServerObj
-    )
-})
-app.get("/update/:type/:freq",(req,res) => {
-    //Packet Format is SIZE SIZE TYPE DATA 
-    //ADMIN_PACKET_UPDATE_FREQUENCY = 0x02
-    //Frequenices are
-    
-    // 0,Automatic,Anually,Quarterly Monthly,Weekly,Daily,Poll
-    let temp:Buffer = Buffer.from([0x07,0x00,0x02,AdminUpdateType[req.params["type"]],0x00,AdminUpdateFrequency[req.params["freq"]],0x00])
-    socket.write(temp);
-    console.log("writing to Server",temp)
-    res.json({
-        Freqs:AdminUpdateType,
-        Types:AdminUpdateFrequency
-    })
-})
-
-
-
-
-
-
-
-app.listen("3000", () => {
-    console.log(`Server listening on 3000`);
-  });
+    });
+    // Add a 'close' event handler for the client socket
+    socket.on('close', function() {
+        console.log('Connection closed');
+    });
+    return([socket,ServerObj])
+}

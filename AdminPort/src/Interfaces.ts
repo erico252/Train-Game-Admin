@@ -1,5 +1,12 @@
+import * as net from "net";
 //--INTERFACES--
+export interface Sockets{
+    ID:number
+    Socket:net.Socket
+    Data:Array<ServerObject>
+}
 export interface ServerObject {
+    UUID:number|null
     Companies:Array<CompanyObject>
     CompanyEconomies:Array<CompanyEconomyObject>
     CompanyStats:Array<CompanyStatsObject>
