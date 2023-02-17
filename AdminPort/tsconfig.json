@@ -1,0 +1,9 @@
+{
+    "compilerOptions": {
+        "strict": true,
+        "forceConsistentCasingInFileNames": true,
+        "outDir": "dist",
+        "noImplicitAny":false
+    },
+    "include": ["src/*"]
+  }
