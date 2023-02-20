@@ -26,7 +26,7 @@ one for the Discord bot. They communicate via RESTful API calls
 Then move on from there to websites/discord/databases/etc
 */
 exports.__esModule = true;
-exports.createConnection = exports.RawReceivedPacket = void 0;
+exports.createConnection = exports.createUpdatePacket = exports.RawReceivedPacket = void 0;
 //--IMPORTS--
 var net = require("net");
 var Packets = require("../dist/PacketFunctions");
@@ -58,12 +58,19 @@ function createAdminJoin(Password, BotName, Version) {
     Packet[0] = Packet.length;
     return Packet;
 }
+function createUpdatePacket(UpdateType, UpdateFrequency) {
+    var Packet;
+    //certain updates can only have certain values
+    //do we want to return failures if you choose an invalid value?
+    Packet = Buffer.from([0x07, 0x00, 0x02, Constants_1.AdminUpdateType.Date, 0x00, Constants_1.AdminUpdateFrequency.Weekly, 0x00]);
+    return (Packet);
+}
+exports.createUpdatePacket = createUpdatePacket;
 function processPacket(RawPacket, Obj) {
     var rawLength = RawPacket.length;
     var cumulativeLength = 0;
     var ActiveType;
     var ActivePacket;
-    console.log("RawData:", RawPacket);
     while (cumulativeLength < rawLength) {
         //find the type of the packet, type is awlasy the 3rd value
         ActiveType = RawPacket[cumulativeLength + 2];
@@ -77,9 +84,6 @@ function processType(Type, data, ServerObj) {
     //Likely we will just need a large switch case to  deal with all of the diffrent Packets
     //This is probably easiest to do by abstractig it away in a seperate file but we will 
     //Attempt on small scale here
-    console.log("---------------");
-    console.log("---------------");
-    console.log("---------------");
     var i = 0;
     var response;
     switch (Type) {
@@ -321,14 +325,11 @@ function processType(Type, data, ServerObj) {
         default:
             console.log("The Packet TYpe ".concat(Type, " is not yet accounted for"));
     }
-    console.log(ServerObj);
 }
 //--MAIN--
-//Create a socket to be used for connection 
+//Create a socket to be used for connection
 function createConnection(UUID, HOST, PORT, PASS, NAME, VERISON) {
     var ServerObj = Object.assign({}, ServerObjProtoType);
-    console.log("Freesssshhh");
-    console.log(ServerObj, "Fresh");
     ServerObj.UUID = UUID;
     var socket = new net.Socket();
     //Connect to the open and active OpenTTD Server

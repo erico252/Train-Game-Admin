@@ -66,12 +66,18 @@ function createAdminJoin(Password:string, BotName:string, Version:string) {
     Packet[0] = Packet.length
     return Packet
 }
+export function createUpdatePacket(UpdateType:number,UpdateFrequency:number){
+    let Packet:Buffer
+    //certain updates can only have certain values
+    //do we want to return failures if you choose an invalid value?
+    Packet = Buffer.from([0x07, 0x00, 0x02, AdminUpdateType.Date, 0x00, AdminUpdateFrequency.Weekly, 0x00])
+    return(Packet)
+} 
 function processPacket(RawPacket:Buffer, Obj:ServerObject){
     let rawLength:number = RawPacket.length
     let cumulativeLength:number = 0
     let ActiveType:number
     let ActivePacket:Buffer
-    console.log("RawData:", RawPacket)
     while(cumulativeLength < rawLength){
         //find the type of the packet, type is awlasy the 3rd value
         ActiveType = RawPacket[cumulativeLength+2]
@@ -86,9 +92,6 @@ function processType(Type:number,data:Buffer, ServerObj:ServerObject){
     //Likely we will just need a large switch case to  deal with all of the diffrent Packets
     //This is probably easiest to do by abstractig it away in a seperate file but we will 
     //Attempt on small scale here
-    console.log("---------------")
-    console.log("---------------")
-    console.log("---------------")
     let i:number = 0
     let response:Array<any>
     switch (Type) {
@@ -332,14 +335,12 @@ function processType(Type:number,data:Buffer, ServerObj:ServerObject){
         default:
           console.log(`The Packet TYpe ${Type} is not yet accounted for`)
       }
-      console.log(ServerObj)
 }
 //--MAIN--
-//Create a socket to be used for connection 
-export function createConnection(UUID:number,HOST:string,PORT:number,PASS:string,NAME:string,VERISON:string){
+//Create a socket to be used for connection
+
+export function createConnection(UUID:number,HOST:string,PORT:number,PASS:string,NAME:string,VERISON:string):[net.Socket, ServerObject]{
     let ServerObj:ServerObject = Object.assign({},ServerObjProtoType)
-    console.log("Freesssshhh")
-    console.log(ServerObj,"Fresh")
     ServerObj.UUID = UUID
     let socket = new net.Socket();
     //Connect to the open and active OpenTTD Server
