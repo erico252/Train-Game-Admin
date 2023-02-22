@@ -6,6 +6,5 @@
         "strictPropertyInitialization": false,
         "noImplicitAny":false
     },
-    "include": ["src/AdminPortAPI.ts","src/ExpressServer.ts","src/PacketFunctions.ts"],
-    "exclude": ["src/Constants.ts","src/Interfaces.ts"]
+    "include": ["./src/AdminPortAPI.ts","./src/ExpressServer.ts","./src/PacketFunctions.ts"],
   }

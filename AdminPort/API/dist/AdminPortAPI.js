@@ -31,6 +31,7 @@ exports.createConnection = exports.createUpdatePacket = exports.RawReceivedPacke
 var net = require("net");
 var Packets = require("../dist/PacketFunctions");
 var Constants_1 = require("../dist/Constants");
+var http = require('node:http');
 //--GLOBALS--
 var ServerObjProtoType = {
     UUID: null,
@@ -359,9 +360,37 @@ function createConnection(UUID, HOST, PORT, PASS, NAME, VERISON) {
         //For this reason we will need to use the SIZE to seperate Packets
         processPacket(data, ServerObj);
     });
+    socket.on('error', function (err) {
+        console.log(err.message);
+        return ([null, null]);
+    });
     // Add a 'close' event handler for the client socket
     socket.on('close', function () {
+        socket.write;
+        //When the socket closes, send a request to remove it form list
+        var postData = JSON.stringify({
+            ID: UUID
+        });
+        var options = {
+            hostname: '127.0.0.1',
+            port: 3000,
+            path: '/close',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(postData)
+            }
+        };
         console.log('Connection closed');
+        var req = http.request(options, function (res) {
+            console.log("Closeing Conection, Removing From List");
+        });
+        req.on('error', function (e) {
+            console.error("problem with request: ".concat(e.message));
+        });
+        // Write data to request body
+        req.write(postData);
+        req.end();
     });
     return ([socket, ServerObj]);
 }

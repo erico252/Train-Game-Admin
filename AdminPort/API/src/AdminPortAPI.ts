@@ -32,6 +32,7 @@ import { EmptyStatement } from "typescript";
 import * as Packets from "../dist/PacketFunctions"
 import {ServerObject, ClientObject, CompanyObject, CompanyEconomyObject, CompanyStatsObject}  from "../dist/Interfaces"
 import {NetworkErrorCode, AdminUpdateFrequency, AdminUpdateType, PacketType, HOST, PORT} from "../dist/Constants"
+const http = require('node:http');
 
 
 
@@ -371,9 +372,39 @@ export function createConnection(UUID:number,HOST:string,PORT:number,PASS:string
         processPacket(data,ServerObj)
 
     });
+    socket.on('error', (err) => {
+        console.log(err.message)
+        return([null,null])
+    })
     // Add a 'close' event handler for the client socket
     socket.on('close', function() {
+        socket.write
+        //When the socket closes, send a request to remove it form list
+        const postData = JSON.stringify({
+            ID: UUID,
+          });
+        const options = {
+            hostname: '127.0.0.1',
+            port: 3000,
+            path: '/close',
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(postData),
+            },
+          };
         console.log('Connection closed');
+        const req = http.request(options, (res) => {
+            console.log("Closeing Conection, Removing From List")
+        });
+          
+        req.on('error', (e) => {
+            console.error(`problem with request: ${e.message}`);
+        });
+          
+          // Write data to request body
+        req.write(postData);
+        req.end();
     });
     return([socket,ServerObj])
 }

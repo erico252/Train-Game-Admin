@@ -4,8 +4,6 @@ import * as net from "net";
 export interface ServerObject {
     UUID:number|null
     Companies:Array<CompanyObject>
-    CompanyEconomies:Array<CompanyEconomyObject>
-    CompanyStats:Array<CompanyStatsObject>
     Clients:Array<ClientObject>
     CurrentDate:number
     ServerName:string

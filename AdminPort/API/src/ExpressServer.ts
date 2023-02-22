@@ -1,7 +1,8 @@
 import { createConnection, createUpdatePacket } from "./AdminPortAPI";
 import * as net from "net";
 import { AdminUpdateType, AdminUpdateFrequency } from "./Constants";
-import { ServerObject } from "./Interfaces";
+import { ServerObject, ClientObject, CompanyEconomyObject, CompanyObject, CompanyStatsObject } from "./Interfaces";
+import { version } from "typescript";
 const express = require("express");
 const bodyParser = require('body-parser')
 var cors = require('cors')
@@ -27,16 +28,34 @@ interface ConnectionRequest{
 
 let UUID:number  = 0
 
+function FindServer(Array:Array<SocketsConnections>,res,req, CallBackFn){
+    const Data = Array.find(obj => {
+        obj.ID == req["ID"]
+    })
+    if(Data == undefined){
+        res.sendStatus(404)
+    }else{
+        CallBackFn(Data,res)
+    }
+}
 
 //--ROUTES--
+
 app.get("/", (req,res) => { // A Splash for API
-    res.send("RESTful API for OpenTTD implemented via NodeJS \n \n http://localhost:3000/connect?IP=127.0.0.1&PORT=3977&PASS=Eric&BOT=Name&VERSION=1.0 \n /sockets \n /server/[ID]")
-    
+    res.send("EndPoints /socket /socket/list /socket/connect /socket:ID/disconnect /server /server/list /server/:ID /server/:ID/companies /server/:ID/clients /server/:ID/query")   
 })
 let arraySockets:Array<SocketsConnections> = []
-app.post("/connect", (req,res) => {
+app.get("/socket", (req,res) => {
+    res.send("The Socket endpoints deal with the raw bot connections")
+})
+app.get("/socket/list", (req,res) => {
+    res.json({socketList:arraySockets})
+})
+app.post("/socket/connect", (req,res) => {
     let data:ConnectionRequest = req.body
-    let ConnectionInfo:[net.Socket, ServerObject] = createConnection(UUID,data.IP,data.PORT,data.PASS,"EricsBot","1.0")
+    let BotName = "EricsBot"
+    let Version = "1.0"
+    let ConnectionInfo:[net.Socket, ServerObject] = createConnection(UUID,data.IP,data.PORT,data.PASS,BotName,Version)
     arraySockets.push({
         ID: UUID,
         Socket: ConnectionInfo[0],
@@ -47,51 +66,46 @@ app.post("/connect", (req,res) => {
         IP: data.IP,
         PORT: data.PORT,
         PASS: data.PASS,
-        BOT: "EricsBot",
-        VERSION: "1.0"
+        BOT: BotName,
+        VERSION: Version
     })
-    UUID = UUID + 1
+    UUID = UUID + 1 
 })
-app.get("/sockets", (req,res) => {
-    if(arraySockets.length==0){
-        res.json({
-            SocketList:[]
-        })
+app.post("/socket/:ID/disconnect", (req,res) => {
+    const serverData = arraySockets.find(obj => {
+        obj.ID == req["ID"]
+    })
+    if(serverData == undefined){
+        res.sendStatus(404)
     }else{
-        res.json({
-            SocketList: arraySockets
-        })
+        serverData.Socket.end(Buffer.from(new Uint8Array([0x03, 0x00, 0x01])),()=>{console.log("Ending This Connection")})
+        arraySockets.splice(arraySockets.indexOf(serverData),1)
+        res.sendStatus(200)
     }
 })
-app.get("/Server", (req,res) => {
-    res.json(
-        {Yellow:"Bannana"}
-    )
+app.get("/server", (req,res) => {
+    res.send("The Server Endpoints Deal with individual Server Data based on ID")
 })
-app.post("/Server/Companies", (req,res) => {
-    let info = req.body
-    let response = new Array
-    arraySockets.forEach((connection) => {
-        if(connection.ID == info.ID){
-            response = connection.Data.Clients
-        }
+app.get("/server/list",(req,res)=>{
+    let data = arraySockets.map((val) => {
+        return([val.ID,val.Data])
     })
     res.json({
-        CompaniesList:response
+        data:data
     })
 })
-app.post("/Server/Clients", (req,res) => {
-    let info = req.body
-    let response = new Array
-    arraySockets.forEach((connection) => {
-        if(connection.ID == info.ID){
-            console.log("Found The SERVER ID")
-            response = connection.Data.Clients
-        }
+app.get("/server/:ID/companies", (req,res) => {
+    FindServer(arraySockets,res,req,(serverData,res) =>{
+        res.json({
+            response:serverData.Data.Companies
+        })
     })
-    console.log(response)
-    res.json({
-        ClientList:response
+})
+app.get("/server/:ID/clients", (req,res) => {
+    FindServer(arraySockets,res,req,(serverData,res) =>{
+        res.json({
+            response:serverData.Data.Companies
+        })
     })
 })
 interface POSTServerUpdates{
@@ -99,60 +113,21 @@ interface POSTServerUpdates{
     UpdateType:number,
     UpdateFrequency:number
 }
-app.post("/Server/Updates", (req,res) => {
+app.post("/server/:ID/query", (req,res) => {
     let info:POSTServerUpdates = req.body
-    arraySockets.forEach((connection) => {
-        if(connection.ID == info.ID){
-            console.log("Found The SERVER ID")
-            let activeSocket:net.Socket = connection.Socket
-            activeSocket.write(createUpdatePacket(info.UpdateType, info.UpdateFrequency))
-            res.sendStatus(200)
-        }
+    FindServer(arraySockets,res,req,(serverData:SocketsConnections,res) =>{
+        serverData.Socket.write(createUpdatePacket(info.UpdateType, info.UpdateFrequency))
+        res.sendStatus(200)
     })
-    if(activeSocket==null){
-        res.sendStatus(201)
-    }else{
-        
-    }
-    
 })
 app.get("/server/:ID", (req,res) => {
-    let data
-    arraySockets.forEach((connection) => {
-        if(connection.ID == req.params["ID"]){
-            data = {data:connection.Data}
-            data.IP = connection.Socket.remoteAddress
-        }
-    })
-    res.json(
-        data
-    )
-})
-app.get("/update",(req,res) => {
-    //Packet Format is SIZE SIZE TYPE DATA 
-    //ADMIN_PACKET_UPDATE_FREQUENCY = 0x02
-    //Frequenices are
-    
-    // 0,Automatic,Anually,Quarterly Monthly,Weekly,Daily,Poll
-    let temp:Buffer = Buffer.from([0x07,0x00,0x02,AdminUpdateType[req.query.TYPE],0x00,AdminUpdateFrequency[req.query.FREQ],0x00])
-    arraySockets.forEach((socket) => {
-        if (socket.ID == req.query.ID){
-            socket.Socket.write(temp);
-        }
-    })
-    
-    console.log("writing to Server",temp)
-    res.json({
-        Freqs:AdminUpdateType,
-        Types:AdminUpdateFrequency
+    FindServer(arraySockets,res,req,(serverData:SocketsConnections,res) =>{
+        res.json({
+            id:serverData.ID,
+            data:serverData.Data
+        })
     })
 })
-
-
-
-
-
-
 
 app.listen("3000", () => {
     console.log(`Server listening on 3000`);

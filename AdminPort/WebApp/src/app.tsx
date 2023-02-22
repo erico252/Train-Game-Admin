@@ -8,20 +8,21 @@ const APIBase:string = "http://localhost:3000"
 
 function Main(props) {
 
-    const [serverConnections, setServerConnections] = useState<Array<SocketsConnections>>([])
+    const [serverConnectionsList, setServerConnectionsList] = useState<Array<SocketsConnections>>([])
     const [activeServerID, setAcitveServerID] = useState<number|null>(null)
     useEffect(() => {
-        console.log("Render!")
+        console.log("Render!",serverConnectionsList)
     })
     useEffect(() => {
-        onGETSocketsClick()
+        refreshServerConnectionsList()
     },[])
     useEffect(() => {
         console.log("The amount of connections has changed!")
-    },[serverConnections])
+        refreshServerConnectionsList()
+    },[serverConnectionsList])
     function onPOSTConnectClick(Password:string, IP:string, Port:number){
         console.log("Ive Been Clicked!")
-        fetch(APIBase+"/connect",{
+        fetch(APIBase+"/socket/connect",{
             method:'POST',
             mode: "cors",
             headers:{
@@ -33,15 +34,42 @@ function Main(props) {
                 PORT:Port
             })
         })
-        .then((res) => res.json())
+        .then((res) => {
+            res.json()
+            console.log("First Then")
+        })
         .then((res) => {
             console.log(res)
+            console.log("Second Then")
         })
         .catch((err) => {
             console.log("There was an Error",err)
         })
+        .finally(() => {
+            console.log("Finally")
+            refreshServerConnectionsList()
+        })
     }
-    function onGETSocketsClick(){
+    function onPOSTRemoveConnectionClick(ID){
+        console.log(`Removing ${ID}`)
+        fetch(APIBase+"/close",{
+            method:'POST',
+            mode: "cors",
+            headers:{
+                'Content-Type': "application/json"
+            },
+            body:JSON.stringify({
+                ID:ID
+            })
+        })
+        .then((res) => {
+            console.log(res)
+        })
+        .finally(() => {
+            refreshServerConnectionsList()
+        })
+    }
+    function refreshServerConnectionsList(){
         setAcitveServerID(null)
         fetch(APIBase+"/sockets",{
             method:'GET',
@@ -52,10 +80,9 @@ function Main(props) {
         })
         .then((res) => res.json())
         .then((res:IGETSocketRes) => {
-            setServerConnections(res.SocketList)
-            res.SocketList.forEach((val) => {
-                console.log(val)
-            })
+            if(res.SocketList.length != serverConnectionsList.length){
+                setServerConnectionsList(res.SocketList)
+            }
         })
         .catch((err) => {
             console.log("There was an Error",err)
@@ -134,13 +161,14 @@ function Main(props) {
             <button onClick={() => onPOSTConnectClick("Eric","127.0.0.1",3977)}>Connect!</button>
         </div>
         <div>
-            <button onClick={() => onGETSocketsClick()}>Get Socket List!</button>
+            <button onClick={() => refreshServerConnectionsList()}>Get Socket List!</button>
         </div>
         {activeServerID==null ? 
-        serverConnections.map((Connection) => {
+        serverConnectionsList.map((Connection) => {
             return(
                 <div>
-                    <button onClick={() => {setAcitveServerID(Connection.ID)}}>{Connection.Data.ServerName}</button>
+                    <button onClick={() => {onPOSTRemoveConnectionClick(Connection.ID)}}>x</button>
+                    <button onClick={() => {setAcitveServerID(Connection.ID)}}>{Connection.Data.ServerName} {Connection.ID}</button>
                 </div>
             )
         })
