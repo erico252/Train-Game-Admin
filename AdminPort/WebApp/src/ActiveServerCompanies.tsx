@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from "react";
-import { CompanyObject } from "./Interfaces";
+import { CompanyObject } from "./WebInterfaces";
 interface props{
     CompaniesArray: Array<CompanyObject>
 }

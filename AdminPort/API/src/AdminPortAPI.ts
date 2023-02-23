@@ -67,11 +67,21 @@ function createAdminJoin(Password:string, BotName:string, Version:string) {
     Packet[0] = Packet.length
     return Packet
 }
+export function createPollPacket(UpdateType:number,CompanyID:number){
+    let Packet:Buffer = Buffer.alloc(8)
+    Packet.writeUintBE(0x0800,0,2)
+    Packet.writeUintBE(0x03,2,1)
+    Packet.writeUintBE(UpdateType,3,1)
+    Packet.writeUintBE(CompanyID,4,4)
+    console.log(Packet,"POLL PACKET")
+    return(Packet)
+} 
 export function createUpdatePacket(UpdateType:number,UpdateFrequency:number){
     let Packet:Buffer
     //certain updates can only have certain values
     //do we want to return failures if you choose an invalid value?
-    Packet = Buffer.from([0x07, 0x00, 0x02, AdminUpdateType.Date, 0x00, AdminUpdateFrequency.Weekly, 0x00])
+    Packet = Buffer.from([0x07, 0x00, 0x02, UpdateType, 0x00, UpdateFrequency, 0x00])
+    console.log(Packet,"UPDATE PACKET")
     return(Packet)
 } 
 function processPacket(RawPacket:Buffer, Obj:ServerObject){
@@ -163,6 +173,7 @@ function processType(Type:number,data:Buffer, ServerObj:ServerObject){
             break
         case PacketType.ADMIN_PACKET_SERVER_CLIENT_JOIN:
             response = Packets.SERVER_CLIENT_JOIN(data)
+            console.log(response,"Client?A")
             let NewClient:ClientObject = {
                 ID: response[0],
                 ClientName:null,
@@ -172,10 +183,30 @@ function processType(Type:number,data:Buffer, ServerObj:ServerObject){
             break
         case PacketType.ADMIN_PACKET_SERVER_CLIENT_INFO:
             response = Packets.SERVER_CLIENT_INFO(data)
-            console.log("What is triggering this?")
+            let ClientID = response[0]
+            let NetworkAddress = response[1]
+            let Name =response[2]
+            let Language = response[3]
+            let JoinDate = response[4]
+            let CompanyID = response[5]
+            const ValidClient = ServerObj.Clients.find(obj => {
+                return obj.ID == ClientID
+            })
+            if(ValidClient == undefined){
+                console.log("This Client has not been accounted for")
+                let NewClient:ClientObject = {
+                    ID: ClientID,
+                    ClientName:Name,
+                    ClientCompanyID:CompanyID,
+                }
+                ServerObj.Clients.push(NewClient)
+            }else{
+                console.log("This Client can be updated!")
+            }
             break
         case PacketType.ADMIN_PACKET_SERVER_CLIENT_UPDATE:
             response = Packets.SERVER_CLIENT_UPDATE(data)
+            console.log(response,"Client?C")
             let UpdateClientID = response[0]
             ServerObj.Clients.forEach((Client) => {
                 if(Client.ID == UpdateClientID){
@@ -186,6 +217,7 @@ function processType(Type:number,data:Buffer, ServerObj:ServerObject){
             break
         case PacketType.ADMIN_PACKET_SERVER_CLIENT_QUIT:
             response = Packets.SERVER_CLIENT_QUIT(data)
+            console.log(response,"Client?D")
             let RemovalClientID:number = response[0]
             i = 0
             ServerObj.Clients.forEach((Client,index) => {
@@ -196,10 +228,12 @@ function processType(Type:number,data:Buffer, ServerObj:ServerObject){
             ServerObj.Clients.splice(i)
             break
         case PacketType.ADMIN_PACKET_SERVER_CLIENT_ERROR:
-            console.log(Packets.SERVER_CLIENT_ERROR(data))
+            response = Packets.SERVER_CLIENT_ERROR(data)
+            console.log(response,"Client?E")
             break
         case PacketType.ADMIN_PACKET_SERVER_COMPANY_NEW:
             response = Packets.SERVER_COMPANY_NEW(data)
+            console.log(response,"Comapny?A")
             let NewCompanyEconomy:CompanyEconomyObject = {
                 Money:0,
                 Loan:0,
@@ -241,10 +275,12 @@ function processType(Type:number,data:Buffer, ServerObj:ServerObject){
             ServerObj.Companies.push(NewCompany)
             break
         case PacketType.ADMIN_PACKET_SERVER_COMPANY_INFO:
-            console.log(Packets.SERVER_COMPANY_INFO(data))
+            response = Packets.SERVER_COMPANY_INFO(data)
+            console.log(response,"Comapny?B")
             break
         case PacketType.ADMIN_PACKET_SERVER_COMPANY_UPDATE:
             response = Packets.SERVER_COMPANY_UPDATE(data)
+            console.log(response,"Comapny?C")
             let UpdateCompanyID:number = response[0]
             ServerObj.Companies.forEach((Company) => {
                 if(UpdateCompanyID==Company.ID){
@@ -262,6 +298,7 @@ function processType(Type:number,data:Buffer, ServerObj:ServerObject){
             break
         case PacketType.ADMIN_PACKET_SERVER_COMPANY_REMOVE:
             response = Packets.SERVER_COMPANY_REMOVE(data)
+            console.log(response,"Comapny?D")
             let RemovalCompanyID:number = response[0]
             i = 0
             ServerObj.Companies.forEach((Company,index) => {
@@ -373,38 +410,13 @@ export function createConnection(UUID:number,HOST:string,PORT:number,PASS:string
 
     });
     socket.on('error', (err) => {
-        console.log(err.message)
+        console.log(err.message, "We should Ping the Disconnect/Error EndPoint when we error")
+        http.get(`http://localhost:3000/socket/${UUID}/error`)
         return([null,null])
     })
     // Add a 'close' event handler for the client socket
     socket.on('close', function() {
-        socket.write
-        //When the socket closes, send a request to remove it form list
-        const postData = JSON.stringify({
-            ID: UUID,
-          });
-        const options = {
-            hostname: '127.0.0.1',
-            port: 3000,
-            path: '/close',
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Content-Length': Buffer.byteLength(postData),
-            },
-          };
-        console.log('Connection closed');
-        const req = http.request(options, (res) => {
-            console.log("Closeing Conection, Removing From List")
-        });
-          
-        req.on('error', (e) => {
-            console.error(`problem with request: ${e.message}`);
-        });
-          
-          // Write data to request body
-        req.write(postData);
-        req.end();
+        console.log("Connection Closed")
     });
     return([socket,ServerObj])
 }

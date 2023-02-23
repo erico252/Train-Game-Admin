@@ -1,4 +1,4 @@
-import { createConnection, createUpdatePacket } from "./AdminPortAPI";
+import { createConnection, createPollPacket, createUpdatePacket } from "./AdminPortAPI";
 import * as net from "net";
 import { AdminUpdateType, AdminUpdateFrequency } from "./Constants";
 import { ServerObject, ClientObject, CompanyEconomyObject, CompanyObject, CompanyStatsObject } from "./Interfaces";
@@ -30,7 +30,7 @@ let UUID:number  = 0
 
 function FindServer(Array:Array<SocketsConnections>,res,req, CallBackFn){
     const Data = Array.find(obj => {
-        obj.ID == req["ID"]
+        return obj.ID == req.params["ID"]
     })
     if(Data == undefined){
         res.sendStatus(404)
@@ -42,14 +42,32 @@ function FindServer(Array:Array<SocketsConnections>,res,req, CallBackFn){
 //--ROUTES--
 
 app.get("/", (req,res) => { // A Splash for API
-    res.send("EndPoints /socket /socket/list /socket/connect /socket:ID/disconnect /server /server/list /server/:ID /server/:ID/companies /server/:ID/clients /server/:ID/query")   
+    res.json({
+        Endpoints:{
+            socket:[
+                {"":"Show Text"},
+                {list:"List all connections"},
+                {connect:"Make a connection to a server"},
+                {":ID/disconnect":"Remove a connection"},
+                {":ID/error":"An Error Occured on Socket, Remove it"}
+            ],
+            server:[
+                {"":"Show Text"},
+                {list:"List all servers in form of ID and Data"},
+                {":ID":"Get all data for Given Server ID"},
+                {":ID/companies":"List all companies of given server ID"},
+                {":ID/clients":"List all clients of a given server ID"},
+                {":ID/query":"Create an update request for given server ID"}
+            ]
+        }
+    })   
 })
 let arraySockets:Array<SocketsConnections> = []
 app.get("/socket", (req,res) => {
     res.send("The Socket endpoints deal with the raw bot connections")
 })
 app.get("/socket/list", (req,res) => {
-    res.json({socketList:arraySockets})
+    res.json({list:arraySockets})
 })
 app.post("/socket/connect", (req,res) => {
     let data:ConnectionRequest = req.body
@@ -71,17 +89,28 @@ app.post("/socket/connect", (req,res) => {
     })
     UUID = UUID + 1 
 })
-app.post("/socket/:ID/disconnect", (req,res) => {
-    const serverData = arraySockets.find(obj => {
-        obj.ID == req["ID"]
+app.get("/socket/:ID/disconnect", (req,res) => {
+    FindServer(arraySockets,res,req,(serverData,res) =>{
+        if(serverData == undefined){
+            res.sendStatus(404)
+        }else{
+            serverData.Socket.end(Buffer.from(new Uint8Array([0x03, 0x00, 0x01])),()=>{console.log("Ending This Connection")})
+            arraySockets.splice(arraySockets.indexOf(serverData),1)
+            res.sendStatus(200)
+        }
     })
-    if(serverData == undefined){
-        res.sendStatus(404)
-    }else{
-        serverData.Socket.end(Buffer.from(new Uint8Array([0x03, 0x00, 0x01])),()=>{console.log("Ending This Connection")})
-        arraySockets.splice(arraySockets.indexOf(serverData),1)
-        res.sendStatus(200)
-    }
+    
+})
+app.get("/socket/:ID/error",(req,res) => {
+    FindServer(arraySockets,res,req,(serverData,res) =>{
+        if(serverData == undefined){
+            res.sendStatus(404)
+        }else{
+            serverData.Socket.end(Buffer.from(new Uint8Array([0x03, 0x00, 0x01])),()=>{console.log("Ending This Connection")})
+            arraySockets.splice(arraySockets.indexOf(serverData),1)
+            res.sendStatus(200)
+        }
+    })
 })
 app.get("/server", (req,res) => {
     res.send("The Server Endpoints Deal with individual Server Data based on ID")
@@ -96,27 +125,36 @@ app.get("/server/list",(req,res)=>{
 })
 app.get("/server/:ID/companies", (req,res) => {
     FindServer(arraySockets,res,req,(serverData,res) =>{
+        Object.entries(serverData.Data.Companies).forEach((val)=>{console.log(typeof(val),"Companie")})
         res.json({
-            response:serverData.Data.Companies
+            list:serverData.Data.Companies
         })
     })
 })
 app.get("/server/:ID/clients", (req,res) => {
-    FindServer(arraySockets,res,req,(serverData,res) =>{
+
+    FindServer(arraySockets,res,req,(serverData:SocketsConnections,res) =>{
+        console.log(serverData.Data.Clients)
+        
         res.json({
-            response:serverData.Data.Companies
+            list:serverData.Data.Clients
         })
     })
 })
 interface POSTServerUpdates{
-    ID:number,
     UpdateType:number,
     UpdateFrequency:number
 }
 app.post("/server/:ID/query", (req,res) => {
     let info:POSTServerUpdates = req.body
+    console.log("Query",info.UpdateType, info.UpdateFrequency)
     FindServer(arraySockets,res,req,(serverData:SocketsConnections,res) =>{
-        serverData.Socket.write(createUpdatePacket(info.UpdateType, info.UpdateFrequency))
+        if(info.UpdateFrequency==1){   
+            serverData.Socket.write(createPollPacket(info.UpdateType, 0xffffffff))
+        }else{
+            serverData.Socket.write(createUpdatePacket(info.UpdateType, info.UpdateFrequency))
+        }
+        
         res.sendStatus(200)
     })
 })
@@ -128,6 +166,12 @@ app.get("/server/:ID", (req,res) => {
         })
     })
 })
+/*
+app.all('*', (req, res) => {
+    console.log("The Path didnt exist, redirecting")
+    res.redirect("/")
+})
+*/
 
 app.listen("3000", () => {
     console.log(`Server listening on 3000`);

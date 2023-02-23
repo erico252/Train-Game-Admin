@@ -15,7 +15,7 @@ app.use(function (req, res, next) {
 var UUID = 0;
 function FindServer(Array, res, req, CallBackFn) {
     var Data = Array.find(function (obj) {
-        obj.ID == req["ID"];
+        return obj.ID == req.params["ID"];
     });
     if (Data == undefined) {
         res.sendStatus(404);
@@ -26,14 +26,32 @@ function FindServer(Array, res, req, CallBackFn) {
 }
 //--ROUTES--
 app.get("/", function (req, res) {
-    res.send("EndPoints /socket /socket/list /socket/connect /socket:ID/disconnect /server /server/list /server/:ID /server/:ID/companies /server/:ID/clients /server/:ID/query");
+    res.json({
+        Endpoints: {
+            socket: [
+                { "": "Show Text" },
+                { list: "List all connections" },
+                { connect: "Make a connection to a server" },
+                { ":ID/disconnect": "Remove a connection" },
+                { ":ID/error": "An Error Occured on Socket, Remove it" }
+            ],
+            server: [
+                { "": "Show Text" },
+                { list: "List all servers in form of ID and Data" },
+                { ":ID": "Get all data for Given Server ID" },
+                { ":ID/companies": "List all companies of given server ID" },
+                { ":ID/clients": "List all clients of a given server ID" },
+                { ":ID/query": "Create an update request for given server ID" }
+            ]
+        }
+    });
 });
 var arraySockets = [];
 app.get("/socket", function (req, res) {
     res.send("The Socket endpoints deal with the raw bot connections");
 });
 app.get("/socket/list", function (req, res) {
-    res.json({ socketList: arraySockets });
+    res.json({ list: arraySockets });
 });
 app.post("/socket/connect", function (req, res) {
     var data = req.body;
@@ -55,18 +73,29 @@ app.post("/socket/connect", function (req, res) {
     });
     UUID = UUID + 1;
 });
-app.post("/socket/:ID/disconnect", function (req, res) {
-    var serverData = arraySockets.find(function (obj) {
-        obj.ID == req["ID"];
+app.get("/socket/:ID/disconnect", function (req, res) {
+    FindServer(arraySockets, res, req, function (serverData, res) {
+        if (serverData == undefined) {
+            res.sendStatus(404);
+        }
+        else {
+            serverData.Socket.end(Buffer.from(new Uint8Array([0x03, 0x00, 0x01])), function () { console.log("Ending This Connection"); });
+            arraySockets.splice(arraySockets.indexOf(serverData), 1);
+            res.sendStatus(200);
+        }
     });
-    if (serverData == undefined) {
-        res.sendStatus(404);
-    }
-    else {
-        serverData.Socket.end(Buffer.from(new Uint8Array([0x03, 0x00, 0x01])), function () { console.log("Ending This Connection"); });
-        arraySockets.splice(arraySockets.indexOf(serverData), 1);
-        res.sendStatus(200);
-    }
+});
+app.get("/socket/:ID/error", function (req, res) {
+    FindServer(arraySockets, res, req, function (serverData, res) {
+        if (serverData == undefined) {
+            res.sendStatus(404);
+        }
+        else {
+            serverData.Socket.end(Buffer.from(new Uint8Array([0x03, 0x00, 0x01])), function () { console.log("Ending This Connection"); });
+            arraySockets.splice(arraySockets.indexOf(serverData), 1);
+            res.sendStatus(200);
+        }
+    });
 });
 app.get("/server", function (req, res) {
     res.send("The Server Endpoints Deal with individual Server Data based on ID");
@@ -81,22 +110,30 @@ app.get("/server/list", function (req, res) {
 });
 app.get("/server/:ID/companies", function (req, res) {
     FindServer(arraySockets, res, req, function (serverData, res) {
+        Object.entries(serverData.Data.Companies).forEach(function (val) { console.log(typeof (val), "Companie"); });
         res.json({
-            response: serverData.Data.Companies
+            list: serverData.Data.Companies
         });
     });
 });
 app.get("/server/:ID/clients", function (req, res) {
     FindServer(arraySockets, res, req, function (serverData, res) {
+        console.log(serverData.Data.Clients);
         res.json({
-            response: serverData.Data.Companies
+            list: serverData.Data.Clients
         });
     });
 });
 app.post("/server/:ID/query", function (req, res) {
     var info = req.body;
+    console.log("Query", info.UpdateType, info.UpdateFrequency);
     FindServer(arraySockets, res, req, function (serverData, res) {
-        serverData.Socket.write((0, AdminPortAPI_1.createUpdatePacket)(info.UpdateType, info.UpdateFrequency));
+        if (info.UpdateFrequency == 1) {
+            serverData.Socket.write((0, AdminPortAPI_1.createPollPacket)(info.UpdateType, 0xffffffff));
+        }
+        else {
+            serverData.Socket.write((0, AdminPortAPI_1.createUpdatePacket)(info.UpdateType, info.UpdateFrequency));
+        }
         res.sendStatus(200);
     });
 });
@@ -108,6 +145,12 @@ app.get("/server/:ID", function (req, res) {
         });
     });
 });
+/*
+app.all('*', (req, res) => {
+    console.log("The Path didnt exist, redirecting")
+    res.redirect("/")
+})
+*/
 app.listen("3000", function () {
     console.log("Server listening on 3000");
 });

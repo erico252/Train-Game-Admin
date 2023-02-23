@@ -198,32 +198,28 @@ export function SERVER_CLIENT_INFO(InputData){
     let NextData:Buffer = Buffer.from([0x00])
     let Values:Array<any> = []
     let Res:Array<any> = []
-    //Extract ID of company UINT8
-    Res = ExtractUINT8(InputData)
+    //Extract ID of Client UINT32
+    Res = ExtractUINT32(InputData)
     Values.push(Res[0])
     NextData = Res[1]
-    //Extract Name of Company STRING
+    //Extract NetworkAddress of Client STRING
     Res = ExtractSTRING(NextData)
     Values.push(Res[0])
     NextData = Res[1]
-    //Extract Name of Manager STRING
+    //Extract Name of Client STRING
     Res = ExtractSTRING(NextData)
     Values.push(Res[0])
     NextData = Res[1]
-    //Extract Color UINT8
+    //Extract Lang of Client UINT8
     Res = ExtractUINT8(NextData)
     Values.push(Res[0])
     NextData = Res[1]
-    //Extract Password Flag BOOL
-    Res = ExtractBOOL(NextData)
-    Values.push(Res[0])
-    NextData = Res[1]
-    //Extract Founding Year UINT32
+    //Extract Date Cleint Joined UINT32
     Res = ExtractUINT32(NextData)
     Values.push(Res[0])
     NextData = Res[1]
-    //Extract AI Flag BOOL
-    Res = ExtractBOOL(NextData)
+    //Extract Company ID of Client (255 for spec) UINT8
+    Res = ExtractUINT8(NextData)
     Values.push(Res[0])
     NextData = Res[1]
     return(Values)

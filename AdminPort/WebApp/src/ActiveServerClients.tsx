@@ -1,5 +1,5 @@
 import React, {useState, useEffect} from "react";
-import { ClientObject } from "./Interfaces";
+import { ClientObject } from "./WebInterfaces";
 interface props{
     ClientsArray: Array<ClientObject>
 }
@@ -16,6 +16,7 @@ export default function ActiveServerClients(props:props) {
                 return(
                     <div>
                         {client.ClientName}
+                        {client.ID}
                     </div>
                 )
             })

@@ -1,69 +1,78 @@
 import React, {useState, useEffect} from "react";
 import ActiveServerClients from "./ActiveServerClients";
 import ActiveServerCompanies from "./ActiveServerCompanies";
-import { CompanyObject, ClientObject } from "./Interfaces";
+import { CompanyObject, ClientObject } from "./WebInterfaces";
 const APIBase:string = "http://localhost:3000"
 
 
+interface Properties{
+    ID: number
+}
+export default function ActiveServer(props:Properties) {
+    const [serverCompanies, setServerCompanies] = useState<Array<CompanyObject>>([])
+    const [serverClients, setServerClients] = useState<Array<ClientObject>>([])
 
-export default function ActiveServer(props) {
-    const [activeCompanies, setActiveCompanies] = useState<Array<CompanyObject>>([])
-    const [activeClients, setActiveClients] = useState<Array<ClientObject>>([])
-    useEffect(() => {
-        onPOSTClientsClick(props.ID)
-        onPOSTCompaniesClick(props.ID)
+    useEffect(()=>{
+        queryClients(props.ID)
+        queryCompanies(props.ID)
+        getServerClientsList(props.ID)
+        getServerCompaniesList(props.ID)
     },[])
-    interface ClientsResponse{
-        ClientList: Array<ClientObject>
+    function getServerCompaniesList(ID:number){
+        fetch(APIBase+`/server/${ID}/companies`,{method:"GET"})
+        .then((res) => {return(res.json())})
+        .then((res)=>{
+            setServerCompanies(res.list)
+        })
     }
-    function onPOSTClientsClick(ID){
-        console.log(`Requesting Clients of Server with id ${ID}`)
-        fetch(APIBase+"/Server/Clients",{
-            method:'POST',
-            mode: "cors",
+    function getServerClientsList(ID:number){
+        fetch(APIBase+`/server/${ID}/clients`,{method:"GET"})
+        .then((res) => {return(res.json())})
+        .then((res)=>{
+            setServerClients(res.list)
+        })
+    }
+    function sendServerQuery(ID:number,Type, Freq){
+        fetch(APIBase+`/server/${ID}/query`,{
+            method:"POST",
             headers:{
-                'Content-Type': "application/json"
+                "Content-Type": "application/json"
             },
             body:JSON.stringify({
-                ID:ID
+                UpdateType:Type,
+                UpdateFrequency:Freq
             })
         })
-        .then((res) => res.json())
-        .then((res:ClientsResponse) => {
-            setActiveClients(res.ClientList)
-        })
-        .catch((err) => {
-            console.log("There was an Error",err)
-        })
+        .finally(()=>{console.log("Completed Query")})
     }
-    interface CompaniesResponse{
-        CompaniesList: Array<CompanyObject>
-    }
-    function onPOSTCompaniesClick(ID:number){
-        console.log(`Requesting Companies of Server with id ${ID}`)
-        fetch(APIBase+"/Server/Companies",{
-            method:'POST',
-            mode: "cors",
+    function queryClients(ID){
+        fetch(APIBase+`/server/${ID}/query`,{
+            method:"POST",
             headers:{
-                'Content-Type': "application/json"
+                "Content-Type": "application/json"
             },
             body:JSON.stringify({
-                ID:ID
+                UpdateType:1,
+                UpdateFrequency:1
             })
         })
-        .then((res) => res.json())
-        .then((res:CompaniesResponse) => {
-            setActiveCompanies(res.CompaniesList)
+    }
+    function queryCompanies(ID){
+        fetch(APIBase+`/server/${ID}/query`,{
+            method:"POST",
+            headers:{
+                "Content-Type": "application/json"
+            },
+            body:JSON.stringify({
+                UpdateType:2,
+                UpdateFrequency:1
+            })
         })
-        .catch((err) => {
-            console.log("There was an Error",err)
-        })
-    }    
-  
+    }
     return(
         <div>
-            <ActiveServerClients ClientsArray={activeClients}/>
-            <ActiveServerCompanies CompaniesArray={activeCompanies} />
+            <ActiveServerClients ClientsArray={serverClients}/>
+            <ActiveServerCompanies CompaniesArray={serverCompanies} />
         </div>
     )
 }

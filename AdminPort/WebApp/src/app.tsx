@@ -1,136 +1,12 @@
 import React, {useState, useEffect} from "react";
 import ReactDOM from "react-dom/client";
 import ActiveServer from "./ActiveServer"
-import { SocketsConnections,IGETSocketRes } from "./Interfaces"
-const APIBase:string = "http://localhost:3000"
+import { SocketsConnections,IGETSocketRes } from "./WebInterfaces"
+
 
 
 
 function Main(props) {
-
-    const [serverConnectionsList, setServerConnectionsList] = useState<Array<SocketsConnections>>([])
-    const [activeServerID, setAcitveServerID] = useState<number|null>(null)
-    useEffect(() => {
-        console.log("Render!",serverConnectionsList)
-    })
-    useEffect(() => {
-        refreshServerConnectionsList()
-    },[])
-    useEffect(() => {
-        console.log("The amount of connections has changed!")
-        refreshServerConnectionsList()
-    },[serverConnectionsList])
-    function onPOSTConnectClick(Password:string, IP:string, Port:number){
-        console.log("Ive Been Clicked!")
-        fetch(APIBase+"/socket/connect",{
-            method:'POST',
-            mode: "cors",
-            headers:{
-                'Content-Type': "application/json"
-            },
-            body:JSON.stringify({
-                PASS: Password,
-                IP:IP,
-                PORT:Port
-            })
-        })
-        .then((res) => {
-            res.json()
-            console.log("First Then")
-        })
-        .then((res) => {
-            console.log(res)
-            console.log("Second Then")
-        })
-        .catch((err) => {
-            console.log("There was an Error",err)
-        })
-        .finally(() => {
-            console.log("Finally")
-            refreshServerConnectionsList()
-        })
-    }
-    function onPOSTRemoveConnectionClick(ID){
-        console.log(`Removing ${ID}`)
-        fetch(APIBase+"/close",{
-            method:'POST',
-            mode: "cors",
-            headers:{
-                'Content-Type': "application/json"
-            },
-            body:JSON.stringify({
-                ID:ID
-            })
-        })
-        .then((res) => {
-            console.log(res)
-        })
-        .finally(() => {
-            refreshServerConnectionsList()
-        })
-    }
-    function refreshServerConnectionsList(){
-        setAcitveServerID(null)
-        fetch(APIBase+"/sockets",{
-            method:'GET',
-            mode: "cors",
-            headers:{
-                'Content-Type': "application/json"
-            }
-        })
-        .then((res) => res.json())
-        .then((res:IGETSocketRes) => {
-            if(res.SocketList.length != serverConnectionsList.length){
-                setServerConnectionsList(res.SocketList)
-            }
-        })
-        .catch((err) => {
-            console.log("There was an Error",err)
-        })
-    }
-    function onPOSTClientsClick(ID){
-        console.log("ToDO, probably put in seperate File")
-        console.log(`Requesting Clients of Server with id ${ID}`)
-        fetch(APIBase+"/connect",{
-            method:'POST',
-            mode: "cors",
-            headers:{
-                'Content-Type': "application/json"
-            },
-            body:JSON.stringify({
-                ID:ID
-            })
-        })
-        .then((res) => res.json())
-        .then((res) => {
-            console.log(res)
-        })
-        .catch((err) => {
-            console.log("There was an Error",err)
-        })
-    }
-    function onPOSTCompaniesClick(ID:number){
-        console.log("ToDO, probably put in seperate File")
-        console.log(`Requesting Companies of Server with id ${ID}`)
-        fetch(APIBase+"/connect",{
-            method:'POST',
-            mode: "cors",
-            headers:{
-                'Content-Type': "application/json"
-            },
-            body:JSON.stringify({
-                ID:ID
-            })
-        })
-        .then((res) => res.json())
-        .then((res) => {
-            console.log(res)
-        })
-        .catch((err) => {
-            console.log("There was an Error",err)
-        })
-    }
-
     /*
     We want to be able to reach diffrent endpoints.
     
@@ -154,26 +30,93 @@ function Main(props) {
         Choose frequency
         Show active Infos and their frequencys
     */
+        const APIBase:string = "http://localhost:3000"
+
+        const [serverList, setServerList] = useState<Array<SocketsConnections>>([])
+        const [activeServer, setActiveServer] = useState<number|null>(null)
+        useEffect(()=>{
+            updateConnectionList()
+        },[])
+        function connectToServer(IP:string,PORT:number,PASS:string){
+            console.log("Connecting to a Server!")
+            fetch(APIBase+"/socket/connect",{
+                method:"POST",
+                headers:{
+                    "Content-Type": "application/json"
+                },
+                body:JSON.stringify({
+                    IP:IP,
+                    PORT:PORT,
+                    PASS:PASS
+                })
+            })
+            .then((res)=>{return(res.json())})
+            .then((res)=>{
+                console.log(res)
+                queryServerInfo(res.ID,1,1)//Type 01, Freq 01
+                queryServerInfo(res.ID,2,1)
+            })
+            .finally(()=>{updateConnectionList()})
+        }
+        function queryServerInfo(ID,Type,Freq){
+            fetch(APIBase+`/server/${ID}/query`,{
+                method:"POST",
+                headers:{
+                    "Content-Type": "application/json"
+                },
+                body:JSON.stringify({
+                    UpdateType:Type,
+                    UpdateFrequency:Freq
+                })
+            })
+            .then((res)=>{return(res.json())})
+            .then((res)=>{return(res)})
+            .finally(()=>{console.log("Completed Query")})
+        }
+        function disconnectFromServer(ID){
+            fetch(APIBase+`/socket/${ID}/disconnect`,{method:"GET"})
+            .then((res)=>{console.log(res)})
+            .finally(()=>{updateConnectionList()})
+        }
+        function updateConnectionList(){
+            console.log("updating List!")
+            fetch(APIBase+"/socket/list",{method:"GET"})
+            .then((res)=>{return(res.json())})
+            .then((res)=>{
+                console.log(res)
+                setServerList(res.list)
+            })
+        }
+
     return(
-       <div>
-        Hellow World
         <div>
-            <button onClick={() => onPOSTConnectClick("Eric","127.0.0.1",3977)}>Connect!</button>
+            <div>
+                OpenTTD AdminPort!
+            </div>
+                {activeServer == null ?
+                    <div>
+                        <div>
+                            <button onClick={() => connectToServer("127.0.0.1",3977,"Eric")}>Connect To a Server!</button>
+                        </div>
+                        <div> 
+                        {serverList.map((server)=>{
+                            return(
+                                <div>
+                                    <button onClick={() => disconnectFromServer(server.ID)}>Disconnect</button>
+                                    <button onClick={() => setActiveServer(server.ID)}>Server Info</button>
+                                    {server.ID} 
+                                    {server.Data.ServerName}
+                                </div>
+                            )
+                        })}
+                        </div>
+                    </div>:
+                    <div>
+                        <button onClick={() => setActiveServer(null)}>Return!</button>
+                        <ActiveServer ID={activeServer}/>
+                    </div>
+                }
         </div>
-        <div>
-            <button onClick={() => refreshServerConnectionsList()}>Get Socket List!</button>
-        </div>
-        {activeServerID==null ? 
-        serverConnectionsList.map((Connection) => {
-            return(
-                <div>
-                    <button onClick={() => {onPOSTRemoveConnectionClick(Connection.ID)}}>x</button>
-                    <button onClick={() => {setAcitveServerID(Connection.ID)}}>{Connection.Data.ServerName} {Connection.ID}</button>
-                </div>
-            )
-        })
-        : <ActiveServer ID={activeServerID} />}
-       </div>
     )
 }
   const root = ReactDOM.createRoot(document.getElementById('root')!)
