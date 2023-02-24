@@ -110,7 +110,7 @@ app.get("/server/list", function (req, res) {
 });
 app.get("/server/:ID/companies", function (req, res) {
     FindServer(arraySockets, res, req, function (serverData, res) {
-        Object.entries(serverData.Data.Companies).forEach(function (val) { console.log(typeof (val), "Companie"); });
+        console.log(serverData.Data.Companies);
         res.json({
             list: serverData.Data.Companies
         });

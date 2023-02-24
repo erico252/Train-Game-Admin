@@ -1,20 +1,29 @@
 import React, {useState, useEffect} from "react";
 import { ClientObject } from "./WebInterfaces";
+const APIBase:string = "http://localhost:3000"
 interface props{
-    ClientsArray: Array<ClientObject>
+    ID:number
 }
 export default function ActiveServerClients(props:props) {
+    const [serverClients, setServerClients] = useState<Array<ClientObject>>([])
     useEffect(()=>{
-        console.log(props.ClientsArray,"On First Render of Clients")
+        getServerClientsList(props.ID)
     },[])
+    function getServerClientsList(ID:number){
+        fetch(APIBase+`/server/${ID}/clients`,{method:"GET"})
+        .then((res) => {return(res.json())})
+        .then((res)=>{
+            setServerClients(res.list)
+        })
+    }
     return(
         <div>
-            Clients
-            {props.ClientsArray.length==0 
+            <button onClick={() => {getServerClientsList(props.ID)}}>clients</button>
+            {serverClients.length==0 
             ?<div>No Clients</div>
-            :props.ClientsArray.map((client) => {
+            :serverClients.map((client,index) => {
                 return(
-                    <div>
+                    <div key={index}>
                         {client.ClientName}
                         {client.ID}
                     </div>

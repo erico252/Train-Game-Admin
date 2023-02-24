@@ -1,17 +1,30 @@
 import React, {useState, useEffect} from "react";
 import { CompanyObject } from "./WebInterfaces";
+const APIBase:string = "http://localhost:3000"
 interface props{
-    CompaniesArray: Array<CompanyObject>
+    ID:number
 }
 export default function ActiveServerCompanies(props:props) {
+    const [serverCompanies, setServerCompanies] = useState<Array<CompanyObject>>([])
+    useEffect(()=>{
+        getServerCompaniesList(props.ID)
+    },[])
+    function getServerCompaniesList(ID:number){
+        fetch(APIBase+`/server/${ID}/companies`,{method:"GET"})
+        .then((res) => {return(res.json())})
+        .then((res)=>{
+            console.log(res.list)
+            setServerCompanies(res.list)
+        })
+    }
     return(
         <div>
-            Companies
-            {props.CompaniesArray.length==0 
+            <button onClick={() => {getServerCompaniesList(props.ID)}}>Companies</button>
+            {serverCompanies.length==0 
             ?<div>No Companies</div>
-            :props.CompaniesArray.map((company) => {
+            :serverCompanies.map((company,index) => {
                 return(
-                    <div>
+                    <div key={index}>
                         {company.CompanyName}
                     </div>
                 )

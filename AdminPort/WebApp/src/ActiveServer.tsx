@@ -3,35 +3,15 @@ import ActiveServerClients from "./ActiveServerClients";
 import ActiveServerCompanies from "./ActiveServerCompanies";
 import { CompanyObject, ClientObject } from "./WebInterfaces";
 const APIBase:string = "http://localhost:3000"
-
-
 interface Properties{
     ID: number
 }
 export default function ActiveServer(props:Properties) {
-    const [serverCompanies, setServerCompanies] = useState<Array<CompanyObject>>([])
-    const [serverClients, setServerClients] = useState<Array<ClientObject>>([])
-
     useEffect(()=>{
         queryClients(props.ID)
         queryCompanies(props.ID)
-        getServerClientsList(props.ID)
-        getServerCompaniesList(props.ID)
     },[])
-    function getServerCompaniesList(ID:number){
-        fetch(APIBase+`/server/${ID}/companies`,{method:"GET"})
-        .then((res) => {return(res.json())})
-        .then((res)=>{
-            setServerCompanies(res.list)
-        })
-    }
-    function getServerClientsList(ID:number){
-        fetch(APIBase+`/server/${ID}/clients`,{method:"GET"})
-        .then((res) => {return(res.json())})
-        .then((res)=>{
-            setServerClients(res.list)
-        })
-    }
+    
     function sendServerQuery(ID:number,Type, Freq){
         fetch(APIBase+`/server/${ID}/query`,{
             method:"POST",
@@ -71,8 +51,9 @@ export default function ActiveServer(props:Properties) {
     }
     return(
         <div>
-            <ActiveServerClients ClientsArray={serverClients}/>
-            <ActiveServerCompanies CompaniesArray={serverCompanies} />
+            <button onClick={()=>queryCompanies(props.ID)}>Hello</button>
+            <ActiveServerClients ID={props.ID} />
+            <ActiveServerCompanies ID={props.ID}/>
         </div>
     )
 }

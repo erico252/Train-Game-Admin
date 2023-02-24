@@ -32,7 +32,7 @@ import { EmptyStatement } from "typescript";
 import * as Packets from "../dist/PacketFunctions"
 import {ServerObject, ClientObject, CompanyObject, CompanyEconomyObject, CompanyStatsObject}  from "../dist/Interfaces"
 import {NetworkErrorCode, AdminUpdateFrequency, AdminUpdateType, PacketType, HOST, PORT} from "../dist/Constants"
-const http = require('node:http');
+const http = require('http');
 
 
 
@@ -69,10 +69,10 @@ function createAdminJoin(Password:string, BotName:string, Version:string) {
 }
 export function createPollPacket(UpdateType:number,CompanyID:number){
     let Packet:Buffer = Buffer.alloc(8)
-    Packet.writeUintBE(0x0800,0,2)
-    Packet.writeUintBE(0x03,2,1)
-    Packet.writeUintBE(UpdateType,3,1)
-    Packet.writeUintBE(CompanyID,4,4)
+    Packet.writeUIntBE(0x0800,0,2)
+    Packet.writeUIntBE(0x03,2,1)
+    Packet.writeUIntBE(UpdateType,3,1)
+    Packet.writeUIntBE(CompanyID,4,4)
     console.log(Packet,"POLL PACKET")
     return(Packet)
 } 
@@ -189,11 +189,12 @@ function processType(Type:number,data:Buffer, ServerObj:ServerObject){
             let Language = response[3]
             let JoinDate = response[4]
             let CompanyID = response[5]
+            if(ClientID==1){Name="Admin"}
             const ValidClient = ServerObj.Clients.find(obj => {
                 return obj.ID == ClientID
             })
             if(ValidClient == undefined){
-                console.log("This Client has not been accounted for")
+                console.log(ClientID, "Is New!")
                 let NewClient:ClientObject = {
                     ID: ClientID,
                     ClientName:Name,
@@ -201,7 +202,7 @@ function processType(Type:number,data:Buffer, ServerObj:ServerObject){
                 }
                 ServerObj.Clients.push(NewClient)
             }else{
-                console.log("This Client can be updated!")
+                console.log(ClientID, "Exists!")
             }
             break
         case PacketType.ADMIN_PACKET_SERVER_CLIENT_UPDATE:
@@ -229,7 +230,9 @@ function processType(Type:number,data:Buffer, ServerObj:ServerObject){
             break
         case PacketType.ADMIN_PACKET_SERVER_CLIENT_ERROR:
             response = Packets.SERVER_CLIENT_ERROR(data)
-            console.log(response,"Client?E")
+            console.log("CLIENT ERROR")
+            console.log("Client ID:", response[0])
+            console.log("Error Code:", response[1])
             break
         case PacketType.ADMIN_PACKET_SERVER_COMPANY_NEW:
             response = Packets.SERVER_COMPANY_NEW(data)
@@ -276,24 +279,56 @@ function processType(Type:number,data:Buffer, ServerObj:ServerObject){
             break
         case PacketType.ADMIN_PACKET_SERVER_COMPANY_INFO:
             response = Packets.SERVER_COMPANY_INFO(data)
-            console.log(response,"Comapny?B")
+            console.log("ORANGE IS AAAAAA")
+            CompanyID = response[0]
+            let CompanyName = response[1]
+            let ManagerName = response[2]
+            let CompanyColor = response[3]
+            let PasswordFlag = response[4]
+            let CompanyStartDate = response[5]
+            let AIFlag = response[6]
+            const ValidCompany = ServerObj.Clients.find(obj => {
+                return obj.ID == CompanyID
+            })
+            console.log(ValidCompany,"AAAAAAAAAAA")
+            if(ValidCompany == undefined){
+                console.log(CompanyID, "Is New!")
+                NewCompany = {
+                    ID: CompanyID,
+                    CompanyName:CompanyName,
+                    ManagerName:ManagerName,
+                    Color:CompanyColor,
+                    PasswordFlag:PasswordFlag,
+                    Share1: null,
+                    Share2: null,
+                    Share3: null,
+                    Share4: null,
+                    Economy: {},
+                    Stats:{}
+                }
+                ServerObj.Companies.push(NewCompany)
+            }else{
+                console.log(CompanyID, "Exists!")
+            }
             break
         case PacketType.ADMIN_PACKET_SERVER_COMPANY_UPDATE:
             response = Packets.SERVER_COMPANY_UPDATE(data)
             console.log(response,"Comapny?C")
             let UpdateCompanyID:number = response[0]
-            ServerObj.Companies.forEach((Company) => {
-                if(UpdateCompanyID==Company.ID){
-                    Company.CompanyName = response[1],
-                    Company.ManagerName = response[2],
-                    Company.Color = response[3],
-                    Company.PasswordFlag = response[4],
-                    Company.Share1 = response[5],
-                    Company.Share2 = response[6],
-                    Company.Share3 = response[7],
-                    Company.Share4 = response[8]
-                }
+            const ValidCompanyUpdate = ServerObj.Companies.find(obj => {
+                return obj.ID == UpdateCompanyID
             })
+            console.log(ValidCompanyUpdate,"BBBBBBBBBBBBB")
+            if(ValidCompanyUpdate != undefined){
+                ValidCompanyUpdate.CompanyName = response[1],
+                ValidCompanyUpdate.ManagerName = response[2],
+                ValidCompanyUpdate.Color = response[3],
+                ValidCompanyUpdate.PasswordFlag = response[4],
+                ValidCompanyUpdate.Share1 = response[5],
+                ValidCompanyUpdate.Share2 = response[6],
+                ValidCompanyUpdate.Share3 = response[7],
+                ValidCompanyUpdate.Share4 = response[8]
+            }
 
             break
         case PacketType.ADMIN_PACKET_SERVER_COMPANY_REMOVE:

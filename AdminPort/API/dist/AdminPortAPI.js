@@ -31,7 +31,7 @@ exports.createConnection = exports.createUpdatePacket = exports.createPollPacket
 var net = require("net");
 var Packets = require("../dist/PacketFunctions");
 var Constants_1 = require("../dist/Constants");
-var http = require('node:http');
+var http = require('http');
 //--GLOBALS--
 var ServerObjProtoType = {
     UUID: null,
@@ -61,10 +61,10 @@ function createAdminJoin(Password, BotName, Version) {
 }
 function createPollPacket(UpdateType, CompanyID) {
     var Packet = Buffer.alloc(8);
-    Packet.writeUintBE(0x0800, 0, 2);
-    Packet.writeUintBE(0x03, 2, 1);
-    Packet.writeUintBE(UpdateType, 3, 1);
-    Packet.writeUintBE(CompanyID, 4, 4);
+    Packet.writeUIntBE(0x0800, 0, 2);
+    Packet.writeUIntBE(0x03, 2, 1);
+    Packet.writeUIntBE(UpdateType, 3, 1);
+    Packet.writeUIntBE(CompanyID, 4, 4);
     console.log(Packet, "POLL PACKET");
     return (Packet);
 }
@@ -181,21 +181,24 @@ function processType(Type, data, ServerObj) {
             var Name = response[2];
             var Language = response[3];
             var JoinDate = response[4];
-            var CompanyID = response[5];
+            var CompanyID_1 = response[5];
+            if (ClientID_1 == 1) {
+                Name = "Admin";
+            }
             var ValidClient = ServerObj.Clients.find(function (obj) {
                 return obj.ID == ClientID_1;
             });
             if (ValidClient == undefined) {
-                console.log("This Client has not been accounted for");
+                console.log(ClientID_1, "Is New!");
                 var NewClient_1 = {
                     ID: ClientID_1,
                     ClientName: Name,
-                    ClientCompanyID: CompanyID
+                    ClientCompanyID: CompanyID_1
                 };
                 ServerObj.Clients.push(NewClient_1);
             }
             else {
-                console.log("This Client can be updated!");
+                console.log(ClientID_1, "Exists!");
             }
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_CLIENT_UPDATE:
@@ -223,7 +226,9 @@ function processType(Type, data, ServerObj) {
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_CLIENT_ERROR:
             response = Packets.SERVER_CLIENT_ERROR(data);
-            console.log(response, "Client?E");
+            console.log("CLIENT ERROR");
+            console.log("Client ID:", response[0]);
+            console.log("Error Code:", response[1]);
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_COMPANY_NEW:
             response = Packets.SERVER_COMPANY_NEW(data);
@@ -269,24 +274,57 @@ function processType(Type, data, ServerObj) {
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_COMPANY_INFO:
             response = Packets.SERVER_COMPANY_INFO(data);
-            console.log(response, "Comapny?B");
+            console.log("ORANGE IS AAAAAA");
+            CompanyID_1 = response[0];
+            var CompanyName = response[1];
+            var ManagerName = response[2];
+            var CompanyColor = response[3];
+            var PasswordFlag = response[4];
+            var CompanyStartDate = response[5];
+            var AIFlag = response[6];
+            var ValidCompany = ServerObj.Clients.find(function (obj) {
+                return obj.ID == CompanyID_1;
+            });
+            console.log(ValidCompany, "AAAAAAAAAAA");
+            if (ValidCompany == undefined) {
+                console.log(CompanyID_1, "Is New!");
+                NewCompany = {
+                    ID: CompanyID_1,
+                    CompanyName: CompanyName,
+                    ManagerName: ManagerName,
+                    Color: CompanyColor,
+                    PasswordFlag: PasswordFlag,
+                    Share1: null,
+                    Share2: null,
+                    Share3: null,
+                    Share4: null,
+                    Economy: {},
+                    Stats: {}
+                };
+                ServerObj.Companies.push(NewCompany);
+            }
+            else {
+                console.log(CompanyID_1, "Exists!");
+            }
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_COMPANY_UPDATE:
             response = Packets.SERVER_COMPANY_UPDATE(data);
             console.log(response, "Comapny?C");
             var UpdateCompanyID_1 = response[0];
-            ServerObj.Companies.forEach(function (Company) {
-                if (UpdateCompanyID_1 == Company.ID) {
-                    Company.CompanyName = response[1],
-                        Company.ManagerName = response[2],
-                        Company.Color = response[3],
-                        Company.PasswordFlag = response[4],
-                        Company.Share1 = response[5],
-                        Company.Share2 = response[6],
-                        Company.Share3 = response[7],
-                        Company.Share4 = response[8];
-                }
+            var ValidCompanyUpdate = ServerObj.Companies.find(function (obj) {
+                return obj.ID == UpdateCompanyID_1;
             });
+            console.log(ValidCompanyUpdate, "BBBBBBBBBBBBB");
+            if (ValidCompanyUpdate != undefined) {
+                ValidCompanyUpdate.CompanyName = response[1],
+                    ValidCompanyUpdate.ManagerName = response[2],
+                    ValidCompanyUpdate.Color = response[3],
+                    ValidCompanyUpdate.PasswordFlag = response[4],
+                    ValidCompanyUpdate.Share1 = response[5],
+                    ValidCompanyUpdate.Share2 = response[6],
+                    ValidCompanyUpdate.Share3 = response[7],
+                    ValidCompanyUpdate.Share4 = response[8];
+            }
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_COMPANY_REMOVE:
             response = Packets.SERVER_COMPANY_REMOVE(data);

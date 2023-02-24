@@ -125,7 +125,7 @@ app.get("/server/list",(req,res)=>{
 })
 app.get("/server/:ID/companies", (req,res) => {
     FindServer(arraySockets,res,req,(serverData,res) =>{
-        Object.entries(serverData.Data.Companies).forEach((val)=>{console.log(typeof(val),"Companie")})
+        console.log(serverData.Data.Companies)
         res.json({
             list:serverData.Data.Companies
         })

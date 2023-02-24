@@ -53,25 +53,10 @@ function Main(props) {
             .then((res)=>{return(res.json())})
             .then((res)=>{
                 console.log(res)
-                queryServerInfo(res.ID,1,1)//Type 01, Freq 01
-                queryServerInfo(res.ID,2,1)
             })
-            .finally(()=>{updateConnectionList()})
-        }
-        function queryServerInfo(ID,Type,Freq){
-            fetch(APIBase+`/server/${ID}/query`,{
-                method:"POST",
-                headers:{
-                    "Content-Type": "application/json"
-                },
-                body:JSON.stringify({
-                    UpdateType:Type,
-                    UpdateFrequency:Freq
-                })
+            .finally(()=>{
+                updateConnectionList()
             })
-            .then((res)=>{return(res.json())})
-            .then((res)=>{return(res)})
-            .finally(()=>{console.log("Completed Query")})
         }
         function disconnectFromServer(ID){
             fetch(APIBase+`/socket/${ID}/disconnect`,{method:"GET"})
@@ -83,7 +68,7 @@ function Main(props) {
             fetch(APIBase+"/socket/list",{method:"GET"})
             .then((res)=>{return(res.json())})
             .then((res)=>{
-                console.log(res)
+                console.log(res.list)
                 setServerList(res.list)
             })
         }
@@ -96,12 +81,13 @@ function Main(props) {
                 {activeServer == null ?
                     <div>
                         <div>
+                            <button onClick={() => updateConnectionList()}>Update!</button>
                             <button onClick={() => connectToServer("127.0.0.1",3977,"Eric")}>Connect To a Server!</button>
                         </div>
                         <div> 
-                        {serverList.map((server)=>{
+                        {serverList.map((server,index)=>{
                             return(
-                                <div>
+                                <div key={index}>
                                     <button onClick={() => disconnectFromServer(server.ID)}>Disconnect</button>
                                     <button onClick={() => setActiveServer(server.ID)}>Server Info</button>
                                     {server.ID} 
