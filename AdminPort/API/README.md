@@ -4,7 +4,7 @@ Here all the information on the APIs processes and its endpoints are found. With
 - Create Packets tp send to Admin Port
 - Decode Packets that are read from Admin Port
 - Create Endpoints for infomration to be Read/Written from
-It should be noted that the defintion for all packets that can be read/written to the server are documented (In the OpenTTD Github)[https://github.com/OpenTTD/OpenTTD/blob/master/src/network/core/tcp_admin.h]
+It should be noted that the defintion for all packets that can be read/written to the server are documented [In the OpenTTD Github](https://github.com/OpenTTD/OpenTTD/blob/master/src/network/core/tcp_admin.h)
 
 ## Creating Packets
 
@@ -19,7 +19,7 @@ The admin join packet is the first thing that is done when a connection is reque
 
 ### Poll
 
-The Poll packet is used to instantaneously ask for data from the server. The poll packet will take an update type as documented (In the OpenTTD Github)[https://github.com/OpenTTD/OpenTTD/blob/master/src/network/core/tcp_admin.h] as well as a company/client ID. This way we can ask for data on an indivdual. We can also ask for all data by sending UINT32MAX as the company/client ID
+The Poll packet is used to instantaneously ask for data from the server. The poll packet will take an update type as documented [In the OpenTTD Github](https://github.com/OpenTTD/OpenTTD/blob/master/src/network/core/tcp_admin.h) as well as a company/client ID. This way we can ask for data on an indivdual. We can also ask for all data by sending UINT32MAX as the company/client ID
 
 ### Update
 
@@ -27,7 +27,7 @@ The Update packet is much like the poll packet however it differs in the fact th
 
 ## Decoding Packets
 
-Decoding Packets is where the fun begins! There are a total of 27 diffrent packet types that we can receive form the adminport conneciton that need to be decoded. These 27 diffrent types are documented (In the OpenTTD Github)[https://github.com/OpenTTD/OpenTTD/blob/master/src/network/core/tcp_admin.h] and all begin with `ADMIN_PACKET_SERVER_`. All the logic behind decoding incomming packets can be found in `.\src\PacketFunctions.ts`. Lets look at an exmaple from the docs and see how we can decode it!
+Decoding Packets is where the fun begins! There are a total of 27 diffrent packet types that we can receive form the adminport conneciton that need to be decoded. These 27 diffrent types are documented [In the OpenTTD Github](https://github.com/OpenTTD/OpenTTD/blob/master/src/network/core/tcp_admin.h) and all begin with `ADMIN_PACKET_SERVER_`. All the logic behind decoding incomming packets can be found in `.\src\PacketFunctions.ts`. Lets look at an exmaple from the docs and see how we can decode it!
 
 ### Example Decoding ADMIN_PACKET_SERVER_CLIENT_INFO
 
