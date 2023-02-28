@@ -77,40 +77,40 @@ TODO: add Endpoint formatting
 - METHOD
 - BODY
 
-#### /socket/
+#### `/socket/`
 Show Info text
 
-#### /socket/list
+#### `/socket/list`
 List All Connections
 
-#### /socket/connect
+#### `/socket/connect`
 Make a connection
 
-#### /socket/:ID/disconnect
+#### `/socket/:ID/disconnect`
 close the connection of the socket with id :ID
 
-#### /socket:ID/error
+#### `/socket:ID/error`
 Unused currently
 
 ### /server Endpoints
 
-#### /server/
+#### `/server`
 Show Info Text
 
-#### /server/list
+#### `/server/list`
 List all servers
 
-#### /server/:ID
+#### `/server/:ID`
 Get data from server with id :ID
 
-#### /server/:ID/companies
+#### `/server/:ID/companies`
 List all companies on server with id :ID
 
-#### /server/:ID/clients
+#### `/server/:ID/clients`
 List all clients on server with id :ID
 
-#### /server/:ID/query
+#### `/server/:ID/query`
 Create and Update request on server with id :ID
 
-#### /server/:ID/poll
+#### `/server/:ID/poll`
 Poll for data on server with id :ID
