@@ -93,11 +93,56 @@ function processPacket(RawPacket, Obj) {
     }
 }
 function processType(Type, data, ServerObj) {
-    //Likely we will just need a large switch case to  deal with all of the diffrent Packets
-    //This is probably easiest to do by abstractig it away in a seperate file but we will 
-    //Attempt on small scale here
-    var i = 0;
+    //Array Retunred by Various Functions
     var response;
+    //When we Create a Company, we will out a New Company Object
+    var NewCompanyEconomy = {
+        Money: 0,
+        Loan: 0,
+        Income: 0,
+        ThisDeliveredCargo: 0,
+        LastCompanyValue: 0,
+        LastPerformance: 0,
+        LastDeliveredCargo: 0,
+        PrevCompanyValue: 0,
+        PrevPerformance: 0,
+        PrevDeliveredCargo: 0
+    };
+    var NewCompanyStats = {
+        Trains: 0,
+        Lorries: 0,
+        Busses: 0,
+        Planes: 0,
+        Ships: 0,
+        TrainStations: 0,
+        LorryStations: 0,
+        BusStops: 0,
+        AirPorts: 0,
+        Harbours: 0
+    };
+    var NewCompany = {
+        ID: 0,
+        CompanyName: null,
+        ManagerName: null,
+        Color: null,
+        PasswordFlag: null,
+        Share1: null,
+        Share2: null,
+        Share3: null,
+        Share4: null,
+        Economy: NewCompanyEconomy,
+        Stats: NewCompanyStats
+    };
+    //When we Poll for Companies, we change an Existing Companies data
+    var ExistingCompany;
+    //When we Create a Client, we will out a New Client Object
+    var NewClient = {
+        ID: 0,
+        ClientName: null,
+        ClientCompanyID: null
+    };
+    //When we Poll for Clients, we change an Existing Clients data
+    var ExistingClient;
     switch (Type) {
         case Constants_1.PacketType.ADMIN_PACKET_ADMIN_JOIN:
             console.log(data, "ADMIN_JOIN");
@@ -131,19 +176,24 @@ function processType(Type, data, ServerObj) {
         //          BELOW  WE RECEIVE
         //----------------------------------------
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_FULL:
-            console.log(Packets.SERVER_FULL(data));
+            response = Packets.SERVER_FULL(data);
+            console.log("SERVER Full");
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_BANNED:
-            console.log(Packets.SERVER_BANNED(data));
+            response = Packets.SERVER_BANNED(data);
+            console.log("SERVER Banned");
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_ERROR:
-            console.log(Packets.SERVER_ERROR(data));
+            response = Packets.SERVER_ERROR(data);
+            console.log("SERVER Error");
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_PROTOCOL:
             response = Packets.SERVER_PROTOCOL(data);
+            console.log("SERVER Protocol");
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_WELCOME:
             response = Packets.SERVER_WELCOME(data);
+            console.log("SERVER Welcome");
             ServerObj.ServerName = response[0];
             ServerObj.ServerVersion = response[1];
             ServerObj.DedicatedFlag = response[2];
@@ -156,46 +206,46 @@ function processType(Type, data, ServerObj) {
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_NEWGAME:
             response = Packets.SERVER_NEWGAME(data);
+            console.log("SERVER New Game");
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_SHUTDOWN:
-            console.log(Packets.SERVER_SHUTDOWN(data));
+            response = Packets.SERVER_SHUTDOWN(data);
+            console.log("SERVER Shutdown");
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_DATE:
             response = Packets.SERVER_DATE(data);
+            console.log("SERVER Date");
             ServerObj.CurrentDate = response[0];
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_CLIENT_JOIN:
             response = Packets.SERVER_CLIENT_JOIN(data);
-            console.log(response, "Client?A");
-            var NewClient = {
-                ID: response[0],
-                ClientName: null,
-                ClientCompanyID: null
-            };
-            ServerObj.Clients.push(NewClient);
+            console.log(response, "CLIENT Join");
+            NewClient.ID = response[0];
+            //ServerObj.Clients.push(NewClient)
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_CLIENT_INFO:
             response = Packets.SERVER_CLIENT_INFO(data);
+            console.log("CLIENT Info");
             var ClientID_1 = response[0];
             var NetworkAddress = response[1];
             var Name = response[2];
-            var Language = response[3];
-            var JoinDate = response[4];
-            var CompanyID_1 = response[5];
             if (ClientID_1 == 1) {
                 Name = "Admin";
             }
-            var ValidClient = ServerObj.Clients.find(function (obj) {
+            var Language = response[3];
+            var JoinDate = response[4];
+            var CompanyID = response[5];
+            ExistingClient = ServerObj.Clients.find(function (obj) {
                 return obj.ID == ClientID_1;
             });
-            if (ValidClient == undefined) {
+            if (ExistingClient == undefined) {
                 console.log(ClientID_1, "Is New!");
-                var NewClient_1 = {
+                NewClient = {
                     ID: ClientID_1,
                     ClientName: Name,
-                    ClientCompanyID: CompanyID_1
+                    ClientCompanyID: CompanyID
                 };
-                ServerObj.Clients.push(NewClient_1);
+                ServerObj.Clients.push(NewClient);
             }
             else {
                 console.log(ClientID_1, "Exists!");
@@ -203,176 +253,151 @@ function processType(Type, data, ServerObj) {
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_CLIENT_UPDATE:
             response = Packets.SERVER_CLIENT_UPDATE(data);
-            console.log(response, "Client?C");
-            var UpdateClientID_1 = response[0];
-            ServerObj.Clients.forEach(function (Client) {
-                if (Client.ID == UpdateClientID_1) {
-                    Client.ClientName = response[1];
-                    Client.ClientCompanyID = response[2];
-                }
+            console.log("CLIENT Update");
+            ExistingClient = ServerObj.Clients.find(function (obj) {
+                return obj.ID == response[0];
             });
+            if (ExistingClient == undefined) {
+                console.log(response[0], "Does Not Exist");
+            }
+            else {
+                console.log(response[0], "Updated!");
+                ExistingClient.ID = response[0];
+                ExistingClient.Name = response[1];
+                ExistingClient.CompanyID = response[2];
+            }
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_CLIENT_QUIT:
             response = Packets.SERVER_CLIENT_QUIT(data);
-            console.log(response, "Client?D");
-            var RemovalClientID_1 = response[0];
-            i = 0;
-            ServerObj.Clients.forEach(function (Client, index) {
-                if (RemovalClientID_1 == Client.ID) {
-                    i = index;
-                }
+            console.log("CLIENT Quit");
+            var ClientRemoveIndex = ServerObj.Clients.findIndex(function (obj) {
+                return obj.ID == response[0];
             });
-            ServerObj.Clients.splice(i);
+            if (ClientRemoveIndex < 0) {
+                console.log(response[0], "Does Not Exist");
+            }
+            else {
+                console.log(response[0], "Quit!");
+                ServerObj.Clients.splice(ClientRemoveIndex, 1);
+            }
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_CLIENT_ERROR:
             response = Packets.SERVER_CLIENT_ERROR(data);
-            console.log("CLIENT ERROR");
+            console.log("CLIENT Error");
             console.log("Client ID:", response[0]);
             console.log("Error Code:", response[1]);
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_COMPANY_NEW:
             response = Packets.SERVER_COMPANY_NEW(data);
-            console.log(response, "Comapny?A");
-            var NewCompanyEconomy = {
-                Money: 0,
-                Loan: 0,
-                Income: 0,
-                ThisDeliveredCargo: 0,
-                LastCompanyValue: 0,
-                LastPerformance: 0,
-                LastDeliveredCargo: 0,
-                PrevCompanyValue: 0,
-                PrevPerformance: 0,
-                PrevDeliveredCargo: 0
-            };
-            var NewCompanyStats = {
-                Trains: 0,
-                Lorries: 0,
-                Busses: 0,
-                Planes: 0,
-                Ships: 0,
-                TrainStations: 0,
-                LorryStations: 0,
-                BusStops: 0,
-                AirPorts: 0,
-                Harbours: 0
-            };
-            var NewCompany = {
-                ID: response[0],
-                CompanyName: null,
-                ManagerName: null,
-                Color: null,
-                PasswordFlag: null,
-                Share1: null,
-                Share2: null,
-                Share3: null,
-                Share4: null,
-                Economy: NewCompanyEconomy,
-                Stats: NewCompanyStats
-            };
-            ServerObj.Companies.push(NewCompany);
+            console.log(response, "New Company Created!");
+            NewCompany.ID = response[0];
+            //ServerObj.Companies.push(NewCompany)
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_COMPANY_INFO:
             response = Packets.SERVER_COMPANY_INFO(data);
-            console.log("ORANGE IS AAAAAA");
-            CompanyID_1 = response[0];
-            var CompanyName = response[1];
-            var ManagerName = response[2];
-            var CompanyColor = response[3];
-            var PasswordFlag = response[4];
-            var CompanyStartDate = response[5];
-            var AIFlag = response[6];
-            var ValidCompany = ServerObj.Clients.find(function (obj) {
-                return obj.ID == CompanyID_1;
+            console.log("COMPANY Info");
+            ExistingCompany = ServerObj.Companies.find(function (obj) {
+                return obj.ID == response[0];
             });
-            console.log(ValidCompany, "AAAAAAAAAAA");
-            if (ValidCompany == undefined) {
-                console.log(CompanyID_1, "Is New!");
-                NewCompany = {
-                    ID: CompanyID_1,
-                    CompanyName: CompanyName,
-                    ManagerName: ManagerName,
-                    Color: CompanyColor,
-                    PasswordFlag: PasswordFlag,
-                    Share1: null,
-                    Share2: null,
-                    Share3: null,
-                    Share4: null,
-                    Economy: {},
-                    Stats: {}
-                };
+            if (ExistingCompany == undefined) {
+                console.log(response[0], "Is New!");
+                NewCompany.ID = response[0];
+                NewCompany.CompanyName = response[1];
+                NewCompany.ManagerName = response[2];
+                NewCompany.Color = response[3];
+                NewCompany.PasswordFlag = response[4];
+                NewCompany.AIFlag = response[6];
                 ServerObj.Companies.push(NewCompany);
             }
             else {
-                console.log(CompanyID_1, "Exists!");
+                console.log(response[0], "Exists!");
+                console.log("Pre", ExistingCompany);
+                ExistingCompany.CompanyName = response[1];
+                ExistingCompany.ManagerName = response[2];
+                ExistingCompany.Color = response[3];
+                ExistingCompany.PasswordFlag = response[4];
+                ExistingCompany.AIFlag = response[6];
+                console.log("Post", ExistingCompany);
             }
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_COMPANY_UPDATE:
             response = Packets.SERVER_COMPANY_UPDATE(data);
-            console.log(response, "Comapny?C");
+            console.log("COMPANY Update");
             var UpdateCompanyID_1 = response[0];
-            var ValidCompanyUpdate = ServerObj.Companies.find(function (obj) {
+            ExistingCompany = ServerObj.Companies.find(function (obj) {
                 return obj.ID == UpdateCompanyID_1;
             });
-            console.log(ValidCompanyUpdate, "BBBBBBBBBBBBB");
-            if (ValidCompanyUpdate != undefined) {
-                ValidCompanyUpdate.CompanyName = response[1],
-                    ValidCompanyUpdate.ManagerName = response[2],
-                    ValidCompanyUpdate.Color = response[3],
-                    ValidCompanyUpdate.PasswordFlag = response[4],
-                    ValidCompanyUpdate.Share1 = response[5],
-                    ValidCompanyUpdate.Share2 = response[6],
-                    ValidCompanyUpdate.Share3 = response[7],
-                    ValidCompanyUpdate.Share4 = response[8];
+            if (ExistingCompany != undefined) {
+                console.log("Pre", ExistingCompany);
+                ExistingCompany.CompanyName = response[1],
+                    ExistingCompany.ManagerName = response[2],
+                    ExistingCompany.Color = response[3],
+                    ExistingCompany.PasswordFlag = response[4],
+                    ExistingCompany.Share1 = response[5],
+                    ExistingCompany.Share2 = response[6],
+                    ExistingCompany.Share3 = response[7],
+                    ExistingCompany.Share4 = response[8];
+                console.log("Post", ExistingCompany);
             }
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_COMPANY_REMOVE:
             response = Packets.SERVER_COMPANY_REMOVE(data);
-            console.log(response, "Comapny?D");
-            var RemovalCompanyID_1 = response[0];
-            i = 0;
-            ServerObj.Companies.forEach(function (Company, index) {
-                if (RemovalCompanyID_1 == Company.ID) {
-                    i = index;
-                }
+            console.log("COMPANY Remove");
+            var CompanyRemoveIndex = ServerObj.Companies.findIndex(function (obj) {
+                return obj.ID == response[0];
             });
-            ServerObj.Companies.splice(i);
+            if (CompanyRemoveIndex < 0) {
+                console.log(response[0], "Does Not Exist");
+            }
+            else {
+                console.log(response[0], "Is Removed!");
+                ServerObj.Companies.splice(CompanyRemoveIndex, 1);
+            }
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_COMPANY_ECONOMY:
             response = Packets.SERVER_COMPANY_ECONOMY(data);
-            var EconomyCompanyID_1 = response[0];
-            ServerObj.Companies.forEach(function (Company) {
-                if (EconomyCompanyID_1 == Company.ID) {
-                    Company.Economy.Money = response[1];
-                    Company.Economy.Loan = response[2];
-                    Company.Economy.Income = response[3];
-                    Company.Economy.ThisDeliveredCargo = response[4];
-                    Company.Economy.LastCompanyValue = response[5];
-                    Company.Economy.LastPerformance = response[6];
-                    Company.Economy.LastDeliveredCargo = response[7];
-                    Company.Economy.PrevCompanyValue = response[8];
-                    Company.Economy.PrevPerformance = response[9];
-                    Company.Economy.PrevDeliveredCargo = response[10];
-                }
+            console.log("COMPANY Economy");
+            //Note some Economy values are BigInt, they are converted via Number()
+            ExistingCompany = ServerObj.Companies.find(function (obj) {
+                return obj.ID == response[0];
             });
+            if (ExistingCompany != undefined) {
+                ExistingCompany.Economy.Money = Number(response[1]);
+                ExistingCompany.Economy.Loan = Number(response[2]);
+                ExistingCompany.Economy.Income = Number(response[3]);
+                ExistingCompany.Economy.ThisDeliveredCargo = response[4];
+                ExistingCompany.Economy.LastCompanyValue = Number(response[5]);
+                ExistingCompany.Economy.LastPerformance = response[6];
+                ExistingCompany.Economy.LastDeliveredCargo = response[7];
+                ExistingCompany.Economy.PrevCompanyValue = Number(response[8]);
+                ExistingCompany.Economy.PrevPerformance = response[9];
+                ExistingCompany.Economy.PrevDeliveredCargo = response[10];
+            }
+            else {
+                console.log("ERROR finding Company");
+            }
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_COMPANY_STATS:
             response = Packets.SERVER_COMPANY_STATS(data);
-            var StatsCompanyID_1 = response[0];
-            ServerObj.Companies.forEach(function (Company) {
-                if (StatsCompanyID_1 == Company.ID) {
-                    Company.Stats.Trains = response[1];
-                    Company.Stats.Lorries = response[2];
-                    Company.Stats.Busses = response[3];
-                    Company.Stats.Planes = response[4];
-                    Company.Stats.Ships = response[5];
-                    Company.Stats.TrainStations = response[6];
-                    Company.Stats.LorryStations = response[7];
-                    Company.Stats.BusStops = response[8];
-                    Company.Stats.AirPorts = response[9];
-                    Company.Stats.Harbours = response[10];
-                }
+            console.log("COMPANY Stats");
+            ExistingCompany = ServerObj.Companies.find(function (obj) {
+                return obj.ID == response[0];
             });
+            if (ExistingCompany != undefined) {
+                ExistingCompany.Stats.Trains = response[1];
+                ExistingCompany.Stats.Lorries = response[2];
+                ExistingCompany.Stats.Busses = response[3];
+                ExistingCompany.Stats.Planes = response[4];
+                ExistingCompany.Stats.Ships = response[5];
+                ExistingCompany.Stats.TrainStations = response[6];
+                ExistingCompany.Stats.LorryStations = response[7];
+                ExistingCompany.Stats.BusStops = response[8];
+                ExistingCompany.Stats.AirPorts = response[9];
+                ExistingCompany.Stats.Harbours = response[10];
+            }
+            else {
+                console.log("ERROR finding Company");
+            }
             break;
         case Constants_1.PacketType.ADMIN_PACKET_SERVER_CHAT:
             console.log(Packets.SERVER_CHAT(data));

@@ -41,7 +41,8 @@ app.get("/", function (req, res) {
                 { ":ID": "Get all data for Given Server ID" },
                 { ":ID/companies": "List all companies of given server ID" },
                 { ":ID/clients": "List all clients of a given server ID" },
-                { ":ID/query": "Create an update request for given server ID" }
+                { ":ID/query": "Create an update request for given server ID" },
+                { ":ID/poll": "Create a poll request for given server ID" }
             ]
         }
     });
@@ -51,7 +52,13 @@ app.get("/socket", function (req, res) {
     res.send("The Socket endpoints deal with the raw bot connections");
 });
 app.get("/socket/list", function (req, res) {
-    res.json({ list: arraySockets });
+    try {
+        res.json({ list: arraySockets });
+    }
+    catch (_a) {
+        console.log("We have a problem");
+        res.json({ list: "Broken" });
+    }
 });
 app.post("/socket/connect", function (req, res) {
     var data = req.body;
@@ -110,7 +117,9 @@ app.get("/server/list", function (req, res) {
 });
 app.get("/server/:ID/companies", function (req, res) {
     FindServer(arraySockets, res, req, function (serverData, res) {
-        console.log(serverData.Data.Companies);
+        console.log(serverData.Data.Companies.map(function (Company) {
+            return ([Company.CompanyName, Company.ID]);
+        }));
         res.json({
             list: serverData.Data.Companies
         });
@@ -129,12 +138,25 @@ app.post("/server/:ID/query", function (req, res) {
     console.log("Query", info.UpdateType, info.UpdateFrequency);
     FindServer(arraySockets, res, req, function (serverData, res) {
         if (info.UpdateFrequency == 1) {
-            serverData.Socket.write((0, AdminPortAPI_1.createPollPacket)(info.UpdateType, 0xffffffff));
+            console.log("Wrong Freq");
         }
         else {
             serverData.Socket.write((0, AdminPortAPI_1.createUpdatePacket)(info.UpdateType, info.UpdateFrequency));
         }
-        res.sendStatus(200);
+        res.status(200).send("Query,".concat(info.UpdateType, ", ").concat(info.UpdateFrequency));
+    });
+});
+app.post("/server/:ID/poll", function (req, res) {
+    var info = req.body;
+    console.log("Poll", info.UpdateType, info.UpdateID);
+    FindServer(arraySockets, res, req, function (serverData, res) {
+        if (info.UpdateFrequency == 1) {
+            serverData.Socket.write((0, AdminPortAPI_1.createPollPacket)(info.UpdateType, info.UpdateID));
+        }
+        else {
+            console.log("Wrong Freq");
+        }
+        res.status(200).send("Poll,".concat(info.UpdateType, ", ").concat(info.UpdateFrequency));
     });
 });
 app.get("/server/:ID", function (req, res) {

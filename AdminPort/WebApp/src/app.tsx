@@ -1,7 +1,11 @@
 import React, {useState, useEffect} from "react";
 import ReactDOM from "react-dom/client";
-import ActiveServer from "./ActiveServer"
+import Info from "./Info"
+import ActiveServerUpdates from "./ActiveServerUpdates";
+import ActiveServerClients from "./ActiveServerClients";
+import ActiveServerCompanies from "./ActiveServerCompanies";
 import { SocketsConnections,IGETSocketRes } from "./WebInterfaces"
+
 
 
 
@@ -76,7 +80,7 @@ function Main(props) {
     return(
         <div>
             <div>
-                OpenTTD AdminPort!
+                OpenTTD AdminPort Web Interface!
             </div>
                 {activeServer == null ?
                     <div>
@@ -85,21 +89,45 @@ function Main(props) {
                             <button onClick={() => connectToServer("127.0.0.1",3977,"Eric")}>Connect To a Server!</button>
                         </div>
                         <div> 
-                        {serverList.map((server,index)=>{
-                            return(
-                                <div key={index}>
-                                    <button onClick={() => disconnectFromServer(server.ID)}>Disconnect</button>
-                                    <button onClick={() => setActiveServer(server.ID)}>Server Info</button>
-                                    {server.ID} 
-                                    {server.Data.ServerName}
-                                </div>
-                            )
-                        })}
+                            <table>
+                                <caption>Active Server Connections</caption>
+                                <thead>
+                                    <tr>
+                                        <td scope="col">Server Name</td>
+                                        <td scope="col">Server Select</td>
+                                        <td scope="col">Disconnect</td>
+                                        <td scope="col">Server ID</td>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                {serverList.map((server,index)=>{
+                                    return(
+                                        <tr key={index}>
+                                            <td scope="row">{server.Data.ServerName}</td>
+                                            <td><button onClick={() => setActiveServer(server.ID)}>Server Info</button></td>
+                                            <td><button onClick={() => disconnectFromServer(server.ID)}>Disconnect</button></td>
+                                            <td>{server.ID}</td> 
+                                        </tr>
+                                    )
+                                })}
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colSpan={3}>Total Active Connections</td>
+                                        <td>{serverList.length}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        
                         </div>
                     </div>:
                     <div>
                         <button onClick={() => setActiveServer(null)}>Return!</button>
-                        <ActiveServer ID={activeServer}/>
+                        <Info />
+                        <ActiveServerUpdates ID={activeServer}/>
+                        <ActiveServerClients ID={activeServer}/>
+                        <ActiveServerCompanies ID={activeServer}/>
+                        
                     </div>
                 }
         </div>

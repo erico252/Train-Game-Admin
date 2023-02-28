@@ -36,9 +36,9 @@ export interface ClientObject {
     ClientCompanyID:number|null
 }
 export interface CompanyEconomyObject {
-    Money:number
-    Loan:number
-    Income:number
+    Money:bigint
+    Loan:bigint
+    Income:bigint
     ThisDeliveredCargo:number
     LastCompanyValue:number
     LastPerformance:number

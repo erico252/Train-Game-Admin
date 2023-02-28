@@ -57,7 +57,8 @@ app.get("/", (req,res) => { // A Splash for API
                 {":ID":"Get all data for Given Server ID"},
                 {":ID/companies":"List all companies of given server ID"},
                 {":ID/clients":"List all clients of a given server ID"},
-                {":ID/query":"Create an update request for given server ID"}
+                {":ID/query":"Create an update request for given server ID"},
+                {":ID/poll":"Create a poll request for given server ID"}
             ]
         }
     })   
@@ -67,7 +68,12 @@ app.get("/socket", (req,res) => {
     res.send("The Socket endpoints deal with the raw bot connections")
 })
 app.get("/socket/list", (req,res) => {
-    res.json({list:arraySockets})
+    try{
+        res.json({list:arraySockets})
+    }catch{
+        console.log("We have a problem")
+        res.json({list:"Broken"})
+    }
 })
 app.post("/socket/connect", (req,res) => {
     let data:ConnectionRequest = req.body
@@ -124,8 +130,10 @@ app.get("/server/list",(req,res)=>{
     })
 })
 app.get("/server/:ID/companies", (req,res) => {
-    FindServer(arraySockets,res,req,(serverData,res) =>{
-        console.log(serverData.Data.Companies)
+    FindServer(arraySockets,res,req,(serverData:SocketsConnections,res) =>{
+        console.log(serverData.Data.Companies.map((Company)=>{
+            return([Company.CompanyName,Company.ID])
+        }))
         res.json({
             list:serverData.Data.Companies
         })
@@ -141,21 +149,39 @@ app.get("/server/:ID/clients", (req,res) => {
         })
     })
 })
-interface POSTServerUpdates{
+interface POSTServerQuery{
     UpdateType:number,
     UpdateFrequency:number
 }
 app.post("/server/:ID/query", (req,res) => {
-    let info:POSTServerUpdates = req.body
+    let info:POSTServerQuery = req.body
     console.log("Query",info.UpdateType, info.UpdateFrequency)
     FindServer(arraySockets,res,req,(serverData:SocketsConnections,res) =>{
         if(info.UpdateFrequency==1){   
-            serverData.Socket.write(createPollPacket(info.UpdateType, 0xffffffff))
+            console.log("Wrong Freq")
         }else{
             serverData.Socket.write(createUpdatePacket(info.UpdateType, info.UpdateFrequency))
         }
         
-        res.sendStatus(200)
+        res.status(200).send(`Query,${info.UpdateType}, ${info.UpdateFrequency}`)
+    })
+})
+interface POSTServerPoll{
+    UpdateType:number,
+    UpdateFrequency:number,
+    UpdateID:number
+}
+app.post("/server/:ID/poll", (req,res) => {
+    let info:POSTServerPoll = req.body
+    console.log("Poll",info.UpdateType, info.UpdateID)
+    FindServer(arraySockets,res,req,(serverData:SocketsConnections,res) =>{
+        if(info.UpdateFrequency==1){ 
+            serverData.Socket.write(createPollPacket(info.UpdateType, info.UpdateID))
+        }else{
+            console.log("Wrong Freq")
+        }
+        
+        res.status(200).send(`Poll,${info.UpdateType}, ${info.UpdateFrequency}`)
     })
 })
 app.get("/server/:ID", (req,res) => {

@@ -21,14 +21,34 @@ export default function ActiveServerClients(props:props) {
             <button onClick={() => {getServerClientsList(props.ID)}}>clients</button>
             {serverClients.length==0 
             ?<div>No Clients</div>
-            :serverClients.map((client,index) => {
-                return(
-                    <div key={index}>
-                        {client.ClientName}
-                        {client.ID}
-                    </div>
-                )
-            })
+            :<div>
+                <table>
+                    <caption>Client List</caption>
+                    <thead>
+                        <tr>
+                            <td scope="col">Client Name</td>
+                            <td scope="col">Client ID</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {serverClients.map((client,index) => {
+                            return(
+                                <tr>
+                                    <td scope="row">{client.ClientName}</td>
+                                    <td>{client.ID}</td>
+                                </tr>
+                                     
+                            )
+                        })}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td scope="row">Total Clients</td>
+                            <td>{serverClients.length}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
             }
         </div>
     )
